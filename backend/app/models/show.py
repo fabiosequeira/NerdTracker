@@ -4,8 +4,8 @@ from typing import Optional
 class Show(Document):
     title: str
     year: Optional[int]
-    seasons: Optional[int]
-    episodes: Optional[int]
+    seasons: Optional[int] = None
+    episodes: Optional[int] = None
     genres: list[str] = []
     rating: Optional[float]
     
