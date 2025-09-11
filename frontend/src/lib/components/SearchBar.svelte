@@ -11,18 +11,21 @@
     loading = true;
 
     try {
-      const [moviesRes, showsRes] = await Promise.all([
+      const [moviesRes, showsRes, animeRes] = await Promise.all([
         fetch(`http://127.0.0.1:8000/tmdb/search/movie?query=${encodeURIComponent(query)}`),
-        fetch(`http://127.0.0.1:8000/tmdb/search/tv?query=${encodeURIComponent(query)}`)
+        fetch(`http://127.0.0.1:8000/tmdb/search/tv?query=${encodeURIComponent(query)}`),
+        fetch(`http://127.0.0.1:8000/tmdb/search/anime?query=${encodeURIComponent(query)}`)
       ]);
 
       const movies = await moviesRes.json();
       const shows = await showsRes.json();
+      const animes = await animeRes.json();
 
       const movieResults = movies.map((m: any) => ({ ...m, type: "Movie" }));
       const showResults = shows.map((s: any) => ({ ...s, type: "Show" }));
+      const animeResults = animes.map((s: any) => ({ ...s, type: "Anime" }));
 
-      results = [...movieResults, ...showResults].sort(
+      results = [...movieResults, ...showResults, ...animeResults].sort(
         (a, b) => (b.popularity ?? 0) - (a.popularity ?? 0)
       );
     } catch (err) {
@@ -36,6 +39,7 @@
   let endpoint = "";
   if (item.type === "Movie") endpoint = "movies";
   if (item.type === "Show") endpoint = "shows";
+  if (item.type == "Anime") endpoint = "animes";
 
   if (!endpoint) return;
 
@@ -43,7 +47,7 @@
     title: item.title ?? "Unknown",
     year: item.year ? parseInt(item.year): null,
     genres: item.genres ?? [],
-    rating: item.vote_average ?? null,  // funciona para filmes e shows
+    rating: item.vote_average ?? null,
     poster: item.poster ?? null,
   };
 
