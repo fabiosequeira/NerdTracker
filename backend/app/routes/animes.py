@@ -1,20 +1,37 @@
 from fastapi import APIRouter, HTTPException
 from app.models.anime import Anime
+import httpx
 
-router = APIRouter()
-
-@router.post("/", response_model=Anime)
-async def add_anime(anime: Anime):
-    await anime.insert()
-    return anime
+router = APIRouter(prefix="/animes", tags=["animes"])
+TMDB_API_KEY = "279b31fd921c02d920708f2ecd2fae66"
 
 @router.get("/", response_model=list[Anime])
 async def list_animes():
     return await Anime.find_all().to_list()
 
-@router.get("/{anime_id}", response_model=Anime)
-async def get_anime(anime_id: str):
-    anime = await Anime.get(anime_id)
-    if not anime:
-        raise HTTPException(404, "Anime not found")
+
+@router.post("/", response_model=Anime)
+async def add_anime(tmdb_id: int):
+    url = f"https://api.themoviedb.org/3/tv/{tmdb_id}"
+    params = {"api_key": TMDB_API_KEY, "language": "en-US"}
+
+    async with httpx.AsyncClient() as client:
+        resp = await client.get(url, params=params)
+        if resp.status_code != 200:
+            raise HTTPException(status_code=resp.status_code, detail="TMDb request failed")
+        details = resp.json()
+
+    payload = {
+        "tmdb_id": details["id"],
+        "title": details.get("name"),
+        "year": details.get("first_air_date", "")[:4] if details.get("first_air_date") else None,
+        "poster": f"https://image.tmdb.org/t/p/original{details['poster_path']}" if details.get("poster_path") else None,
+        "genres": [g["name"] for g in details.get("genres", [])],
+        "rating": round(details.get("vote_average", 0), 1) if details.get("vote_average") is not None else None,
+        "seasons": details.get("number_of_seasons"),
+        "episodes": details.get("number_of_episodes"),
+    }
+
+    anime = Anime(**payload)
+    await anime.insert()
     return anime

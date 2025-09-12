@@ -1,7 +1,11 @@
 <script lang="ts">
+	import { createEventDispatcher } from "svelte";
+  const dispatch = createEventDispatcher();
+
   let query = "";
   let results: any[] = [];
   let loading = false;
+  let items: any[] = []; // lista da DB visível
 
   async function searchAll() {
     if (query.length < 2) {
@@ -21,13 +25,11 @@
       const shows = await showsRes.json();
       const animes = await animeRes.json();
 
-      const movieResults = movies.map((m: any) => ({ ...m, type: "Movie" }));
-      const showResults = shows.map((s: any) => ({ ...s, type: "Show" }));
-      const animeResults = animes.map((s: any) => ({ ...s, type: "Anime" }));
-
-      results = [...movieResults, ...showResults, ...animeResults].sort(
-        (a, b) => (b.popularity ?? 0) - (a.popularity ?? 0)
-      );
+      results = [
+        ...movies.map((m: any) => ({ ...m, type: "Movie" })),
+        ...shows.map((s: any) => ({ ...s, type: "Show" })),
+        ...animes.map((a: any) => ({ ...a, type: "Anime" }))
+      ].sort((a, b) => (b.popularity ?? 0) - (a.popularity ?? 0));
     } catch (err) {
       console.error("Search failed:", err);
     }
@@ -35,44 +37,50 @@
     loading = false;
   }
 
-  async function addItem(item: any) {
-  let endpoint = "";
-  if (item.type === "Movie") endpoint = "movies";
-  if (item.type === "Show") endpoint = "shows";
-  if (item.type == "Anime") endpoint = "animes";
-
-  if (!endpoint) return;
-
-  const payload = {
-    title: item.title ?? "Unknown",
-    year: item.year ? parseInt(item.year): null,
-    genres: item.genres ?? [],
-    rating: item.vote_average ?? null,
-    poster: item.poster ?? null,
-  };
-
-  try {
-    const res = await fetch(`http://127.0.0.1:8000/${endpoint}/`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-
-    if (!res.ok) {
-      const errText = await res.text();
-      console.error("Error adding item:", errText);
-      alert("Failed to add item ❌");
-      return;
+  async function fetchItems(endpoint: string) {
+    try {
+      const res = await fetch(`http://127.0.0.1:8000/${endpoint}/`);
+      if (res.ok) items = await res.json();
+    } catch (err) {
+      console.error("Failed to fetch items:", err);
     }
-
-    alert(`${item.type} "${item.title}" added ✅`);
-    query = "";
-    results = [];
-  } catch (err) {
-    console.error("Add failed:", err);
-    alert("Failed to add item ❌");
   }
-}
+
+  async function addItem(item: any) {
+    let endpoint = "";
+    if (item.type === "Movie") endpoint = "movies";
+    if (item.type === "Show") endpoint = "shows";
+    if (item.type === "Anime") endpoint = "animes";
+
+    if (!endpoint) return;
+
+    try {
+      const res = await fetch(`http://127.0.0.1:8000/${endpoint}/?tmdb_id=${item.id}`, {
+        method: "POST"
+      });
+
+      if (!res.ok) {
+        const errText = await res.text();
+        console.error("Error adding item:", errText);
+        alert("Failed to add item ❌");
+        return;
+      }
+
+      await Promise.all([
+        fetchItems("movies"),
+        fetchItems("shows"),
+        fetchItems("animes")
+      ]);
+
+      alert(`${item.type} "${item.title}" added ✅`);
+      query = "";
+      results = [];
+      dispatch('itemAdded', { type: item.type });
+    } catch (err) {
+      console.error("Add failed:", err);
+      alert("Failed to add item ❌");
+    }
+  }
 
 </script>
 
@@ -81,7 +89,7 @@
     type="text"
     bind:value={query}
     on:input={searchAll}
-    placeholder="Search for a movie, show, anime or videogame..."
+    placeholder="Search for a movie, show or anime..."
     class="w-full border rounded-lg p-2"
   />
 
@@ -92,17 +100,20 @@
   {#if results.length > 0}
     <ul class="absolute bg-white border w-full mt-1 rounded-lg shadow-lg z-10 max-h-96 overflow-y-auto">
       {#each results as item}
-        <li
-          class="flex items-center gap-3 p-2 hover:bg-gray-100 cursor-pointer"
-          on:click={() => addItem(item)}
-        >
-          {#if item.poster}
-            <img src={item.poster} alt={item.title} class="w-10 h-14 object-cover rounded" />
-          {/if}
-          <div>
-            <span class="font-medium">{item.title}</span>
-            <span class="text-sm text-gray-500">({item.year}) • {item.type}</span>
-          </div>
+        <li>
+          <button
+            type="button"
+            class="flex items-center gap-3 w-full text-left p-2 hover:bg-gray-100 cursor-pointer"
+            on:click={() => addItem(item)}
+          >
+            {#if item.poster}
+              <img src={item.poster} alt={item.title} class="w-10 h-14 object-cover rounded" />
+            {/if}
+            <div>
+              <span class="font-medium">{item.title}</span>
+              <span class="text-sm text-gray-500">({item.year}) • {item.type}</span>
+            </div>
+          </button>
         </li>
       {/each}
     </ul>

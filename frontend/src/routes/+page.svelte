@@ -53,7 +53,12 @@ fetchData<Anime>('animes', (d) => anime = d);
 <main class="p-8 bg-gray-100 min-h-screen">
   <h1 class="text-3xl font-bold text-center mb-8">NerdTracker</h1>
 
-  <SearchBar />
+  <SearchBar on:itemAdded={(e) => {
+    const type = e.detail.type;
+    if (type == 'Movie') fetchData<Movie>('movies', d => movies = d);
+    if (type == 'Show') fetchData<Show>('shows', d => shows = d);
+    if (type == 'Anime') fetchData<Anime>('animes', d => anime = d);
+  }} />
 
   <!-- Tabs -->
   <div class="flex justify-center gap-4 mt-6 mb-6">

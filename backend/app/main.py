@@ -10,9 +10,9 @@ origins = [
 
 app = FastAPI(title="NerdTracker API")
 app.include_router(tmdb.router)
-app.include_router(movies.router, prefix="/movies", tags=["movies"])
-app.include_router(shows.router, prefix="/shows", tags=["shows"])
-app.include_router(animes.router, prefix="/animes", tags=["animes"])
+app.include_router(movies.router)
+app.include_router(shows.router)
+app.include_router(animes.router)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
