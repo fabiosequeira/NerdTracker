@@ -1,18 +1,17 @@
 from fastapi import FastAPI
-from app.routes import movies, shows, animes, tmdb
+from app.routes import movies, shows, animes, games, tmdb, igdb
 from app.db import init_db
 from fastapi.middleware.cors import CORSMiddleware
 
-origins = [
-    "http://localhost:5173",
-    "http://127.0.0.1/"
-]
+origins = ["*"]
 
 app = FastAPI(title="NerdTracker API")
 app.include_router(tmdb.router)
+app.include_router(igdb.router)
 app.include_router(movies.router)
 app.include_router(shows.router)
 app.include_router(animes.router)
+app.include_router(games.router)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,

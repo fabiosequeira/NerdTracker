@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { createEventDispatcher } from "svelte";
+  import { createEventDispatcher } from "svelte";
   const dispatch = createEventDispatcher();
 
   let query = "";
@@ -15,20 +15,23 @@
     loading = true;
 
     try {
-      const [moviesRes, showsRes, animeRes] = await Promise.all([
+      const [moviesRes, showsRes, animeRes, gamesRes] = await Promise.all([
         fetch(`http://127.0.0.1:8000/tmdb/search/movie?query=${encodeURIComponent(query)}`),
         fetch(`http://127.0.0.1:8000/tmdb/search/tv?query=${encodeURIComponent(query)}`),
-        fetch(`http://127.0.0.1:8000/tmdb/search/anime?query=${encodeURIComponent(query)}`)
+        fetch(`http://127.0.0.1:8000/tmdb/search/anime?query=${encodeURIComponent(query)}`),
+        fetch(`http://127.0.0.1:8000/igdb/search/game?query=${encodeURIComponent(query)}`)
       ]);
 
       const movies = await moviesRes.json();
       const shows = await showsRes.json();
       const animes = await animeRes.json();
+      const games = await gamesRes.json();
 
       results = [
         ...movies.map((m: any) => ({ ...m, type: "Movie" })),
         ...shows.map((s: any) => ({ ...s, type: "Show" })),
-        ...animes.map((a: any) => ({ ...a, type: "Anime" }))
+        ...animes.map((a: any) => ({ ...a, type: "Anime" })),
+        ...games.map((g: any) => ({ ...g, type: "Game" }))
       ].sort((a, b) => (b.popularity ?? 0) - (a.popularity ?? 0));
     } catch (err) {
       console.error("Search failed:", err);
@@ -51,13 +54,18 @@
     if (item.type === "Movie") endpoint = "movies";
     if (item.type === "Show") endpoint = "shows";
     if (item.type === "Anime") endpoint = "animes";
+    if (item.type === "Game") endpoint = "games";
 
     if (!endpoint) return;
 
     try {
-      const res = await fetch(`http://127.0.0.1:8000/${endpoint}/?tmdb_id=${item.id}`, {
-        method: "POST"
-      });
+      let res;
+      if (item.type === "Game") {
+        // use igdb_id for games
+        res = await fetch(`http://127.0.0.1:8000/${endpoint}/?igdb_id=${item.id}`, { method: "POST" });
+      } else {
+        res = await fetch(`http://127.0.0.1:8000/${endpoint}/?tmdb_id=${item.id}`, { method: "POST" });
+      }
 
       if (!res.ok) {
         const errText = await res.text();
@@ -66,22 +74,24 @@
         return;
       }
 
+      // fetch all DB lists after adding
       await Promise.all([
         fetchItems("movies"),
         fetchItems("shows"),
-        fetchItems("animes")
+        fetchItems("animes"),
+        fetchItems("games")
       ]);
 
       alert(`${item.type} "${item.title}" added ✅`);
       query = "";
       results = [];
       dispatch('itemAdded', { type: item.type });
+
     } catch (err) {
       console.error("Add failed:", err);
       alert("Failed to add item ❌");
     }
   }
-
 </script>
 
 <div class="relative w-full max-w-md mx-auto">
@@ -89,7 +99,7 @@
     type="text"
     bind:value={query}
     on:input={searchAll}
-    placeholder="Search for a movie, show or anime..."
+    placeholder="Search for a movie, show, anime or game..."
     class="w-full border rounded-lg p-2"
   />
 
@@ -111,7 +121,9 @@
             {/if}
             <div>
               <span class="font-medium">{item.title}</span>
-              <span class="text-sm text-gray-500">({item.year}) • {item.type}</span>
+              <span class="text-sm text-gray-500">
+                {item.year ? `(${item.year})` : ""} • {item.type}
+              </span>
             </div>
           </button>
         </li>
