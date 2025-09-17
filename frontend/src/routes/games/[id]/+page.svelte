@@ -4,7 +4,7 @@
   import { tick } from "svelte";
 
   let game: any = null;
-  let activeTab: "Details" | "Extras" | "Trophies" | "Screenshots" | "Artworks" | "Videos" = "Details";
+  let activeTab: "Details" | "Storyline" | "Extras" | "Trophies" | "Screenshots" | "Artworks" | "Videos" = "Details";
 
   let tabRefs: (HTMLButtonElement | null)[] = [];
   let underlineStyle = "";
@@ -84,6 +84,7 @@
     }));
 
     function draw() {
+      if (!ctx) return;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.fillStyle = "rgba(255,255,255,0.3)";
       particles.forEach((p) => {
@@ -148,7 +149,7 @@
 
       <!-- Tabs -->
       <div class="bg-gray-900 flex gap-4 mb-6 border-b border-gray-700 relative py-2">
-        {#each ["Details", "Extras", "Trophies", "Screenshots", "Artworks"] as tab, i}
+        {#each (["Details", "Storyline", "Extras", "Trophies", "Screenshots", "Artworks"] as const) as tab, i}
           <button
             bind:this={tabRefs[i]}
             class="px-4 py-2 font-semibold rounded-md text-gray-200 hover:text-white transition-colors duration-200"
@@ -170,9 +171,6 @@
         <div class="bg-gray-800 p-6 md:p-8 rounded-lg shadow-lg space-y-4 animate-fadeIn">
           <h1 class="text-2xl md:text-3xl font-bold">{game.title} <span class="text-gray-400 text-lg md:text-xl">({game.year ?? "-"})</span></h1>
           <p class="text-gray-300">{game.summary ?? "No summary available."}</p>
-          {#if game.storyline}
-            <p class="text-gray-400 italic">{game.storyline}</p>
-          {/if}
           <div class="grid grid-cols-2 sm:grid-cols-3 gap-4 mt-4 text-sm">
             <p><strong>Genres:</strong> {game.genres?.join(", ") ?? "-"}</p>
             <p><strong>Modes:</strong> {game.game_modes?.join(", ") ?? "-"}</p>
@@ -183,6 +181,18 @@
             <p><strong>Collection:</strong> {game.collection ?? "-"}</p>
             <p><strong>Franchise:</strong> {game.franchise ?? "-"}</p>
           </div>
+        </div>
+      {/if}
+
+      <!-- Storyline -->
+      {#if activeTab === "Storyline"}
+        <div class="bg-gray-800 p-6 md:p-8 rounded-lg shadow-lg animate-fadeIn">
+          <h2 class="text-xl md:text-2xl font-semibold mb-2">Storyline</h2>
+          {#if game.storyline}
+            <p class="text-gray-300 whitespace-pre-line">{game.storyline}</p>
+          {:else}
+            <p class="text-gray-400">No storyline available.</p>
+          {/if}
         </div>
       {/if}
 
@@ -265,12 +275,18 @@
         <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6 animate-fadeIn">
           {#if game.screenshots?.length > 0}
             {#each game.screenshots.slice(0,12) as img, i}
-              <img
-                src={img}
-                alt="Screenshot from {game.title}"
-                class="rounded-lg shadow-lg transform transition-transform duration-300 hover:scale-105 hover:-rotate-1 cursor-pointer"
+              <button
+                type="button"
+                class="p-0 bg-transparent border-none rounded-lg shadow-lg transform transition-transform duration-300 hover:scale-105 hover:-rotate-1 cursor-pointer"
                 on:click={() => openLightbox(game.screenshots, i)}
-              />
+                aria-label="View screenshot from {game.title}"
+              >
+                <img
+                  src={img}
+                  alt="Screenshot from {game.title}"
+                  class="rounded-lg w-full h-auto"
+                />
+              </button>
             {/each}
           {:else}
             <p class="text-gray-400">No screenshots available.</p>
@@ -282,12 +298,18 @@
         <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6 animate-fadeIn">
           {#if game.artworks?.length > 0}
             {#each game.artworks.slice(0,12) as art, i}
-              <img
-                src={art}
-                alt="Artwork from {game.title}"
-                class="rounded-lg shadow-lg transform transition-transform duration-300 hover:scale-105 hover:-rotate-1 cursor-pointer"
+              <button
+                type="button"
+                class="p-0 bg-transparent border-none rounded-lg shadow-lg transform transition-transform duration-300 hover:scale-105 hover:-rotate-1 cursor-pointer"
                 on:click={() => openLightbox(game.artworks, i)}
-              />
+                aria-label="View artwork from {game.title}"
+              >
+                <img
+                  src={art}
+                  alt="Artwork from {game.title}"
+                  class="rounded-lg w-full h-auto"
+                />
+              </button>
             {/each}
           {:else}
             <p class="text-gray-400">No artworks available.</p>

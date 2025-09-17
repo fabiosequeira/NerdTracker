@@ -82,6 +82,7 @@
     }));
 
     function draw() {
+      if (!ctx) return;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.fillStyle = "rgba(255,255,255,0.3)";
       particles.forEach((p) => {
@@ -144,7 +145,7 @@
 
 <!-- Tabs -->
     <div class="bg-gray-900 flex gap-4 mb-6 border-b border-gray-700 relative py-2">
-      {#each ["Details", "Screenshots", "Videos"] as tab, i}
+      {#each (["Details", "Screenshots", "Videos"] as ("Details" | "Screenshots" | "Videos")[]) as tab, i}
         <button
           bind:this={tabRefs[i]}
           class="px-4 py-2 font-semibold rounded-md text-gray-200 hover:text-white transition-colors duration-200"
@@ -184,12 +185,19 @@
       <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
         {#if movie.images?.length > 0}
         {#each movie.images.slice(0,12) as img, i}
-          <img
-            src={img}
-            alt="Screenshot from {movie.title}"
-            class="rounded-lg shadow-lg transform transition-transform duration-300 hover:scale-105 hover:-rotate-1 cursor-pointer"
+          <button
+            type="button"
+            class="p-0 bg-transparent border-none rounded-lg shadow-lg transform transition-transform duration-300 hover:scale-105 hover:-rotate-1 cursor-pointer focus:outline-none"
+            aria-label="Open screenshot from {movie.title}"
             on:click={() => openLightbox(i)}
-          />
+            on:keydown={(e) => { if (e.key === "Enter" || e.key === " ") openLightbox(i); }}
+          >
+            <img
+              src={img}
+              alt="Screenshot from {movie.title}"
+              class="rounded-lg"
+            />
+          </button>
         {/each}
         {:else}
         <p class="text-gray-400">No screenshots available.</p>

@@ -33,7 +33,7 @@ async def add_movie(tmdb_id: int):
         "title": details.get("title"),
         "year": int(details["release_date"][:4]) if details.get("release_date") else None,
         "genres": [g["name"] for g in details.get("genres", [])],
-        "rating": details.get("vote_average"),
+        "rating": round(details.get("vote_average", 0), 1) if details.get("vote_average") is not None else None,
         "rating_count": details.get("vote_count"),
         "overview": details.get("overview"),
         "runtime": details.get("runtime"),

@@ -1,6 +1,7 @@
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Body
 from beanie import PydanticObjectId
-from app.models.game import Game
+from app.models.game import Game, Trophy
+from typing import List, Optional
 import httpx
 import os
 import time
@@ -45,7 +46,10 @@ async def list_games():
 
 
 @router.post("/", response_model=Game)
-async def add_game(igdb_id: int = Query(..., description="IGDB game ID")):
+async def add_game(
+    igdb_id: int = Query(..., description="IGDB game ID"),
+    trophies: Optional[List[Trophy]] = Body(None, description="Optional list of trophies")
+):
     token = await get_igdb_token()
     url = "https://api.igdb.com/v4/games"
     headers = {
@@ -54,10 +58,13 @@ async def add_game(igdb_id: int = Query(..., description="IGDB game ID")):
     }
 
     body = f"""
-fields id, name, first_release_date, genres.name, rating, cover.image_id, platforms.name, game_modes.name, rating_count, aggregated_rating, aggregated_rating_count, screenshots.image_id, artworks.image_id, websites.url, dlcs.name, expansions.name, remakes.name, remasters.name, bundles.name, involved_companies.company.name;
+fields id, name, first_release_date, hypes, genres.name, rating, cover.image_id, 
+       platforms.name, game_modes.name, rating_count, aggregated_rating, aggregated_rating_count, 
+       screenshots.image_id, artworks.image_id, websites.url, dlcs.name, expansions.name, 
+       remakes.name, remasters.name, bundles.name, involved_companies.company.name,
+       summary, storyline;
 where id = {igdb_id};
 """
-
 
     async with httpx.AsyncClient() as client:
         resp = await client.post(url, content=body, headers=headers)
@@ -67,6 +74,7 @@ where id = {igdb_id};
         if not data:
             raise HTTPException(status_code=404, detail="Game not found in IGDB")
         details = data[0]
+
 
     # Build payload
     payload = {
@@ -80,7 +88,7 @@ where id = {igdb_id};
         "rating_count": details.get("rating_count"),
         "aggregated_rating": round(details.get("aggregated_rating"), 1) if details.get("aggregated_rating") is not None else None,
         "aggregated_rating_count": details.get("aggregated_rating_count"),
-        "popularity": details.get("popularity"),
+        "popularity": details.get("hypes"),
         "cover": f"https://images.igdb.com/igdb/image/upload/t_720p/{details['cover']['image_id']}.jpg" if details.get("cover") else None,
         "screenshots": [f"https://images.igdb.com/igdb/image/upload/t_1080p/{s['image_id']}.jpg" for s in details.get("screenshots", []) if s.get("image_id")],
         "artworks": [f"https://images.igdb.com/igdb/image/upload/t_1080p/{a['image_id']}.jpg" for a in details.get("artworks", []) if a.get("image_id")],
@@ -105,6 +113,7 @@ where id = {igdb_id};
     game = Game(**payload)
     await game.insert()
     return game
+
 
 
 @router.delete("/{game_id}")

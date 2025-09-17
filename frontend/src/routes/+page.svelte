@@ -2,13 +2,13 @@
   import SearchBar from "$lib/components/SearchBar.svelte";
   import { onMount } from "svelte";
 
-  let movies = [], shows = [], anime = [], games = [];
+  let movies: any[] = [], shows: any[] = [], anime: any[] = [], games: any[] = [];
   let activeTab: "Movies" | "Shows" | "Anime" | "Game" = "Movies";
   const apiBase = 'http://127.0.0.1:8000';
 
   let heroItems = []; // not used anymore, kept in case we want to add banner back
 
-  async function fetchData(endpoint: string, setter) {
+  async function fetchData(endpoint: string, setter: (data: any) => void) {
     try {
       const res = await fetch(`${apiBase}/${endpoint}/`);
       const data = await res.json();
@@ -21,7 +21,7 @@
   fetchData("animes", d => anime = d);
   fetchData("games", d => games = d);
 
-  async function deleteItem(item, endpoint) {
+  async function deleteItem(item: any, endpoint: string) {
     const id = item._id || item.id;
     if(!id) return alert("No ID found");
     const res = await fetch(`${apiBase}/${endpoint}/${id}`, { method: "DELETE" });
@@ -51,6 +51,7 @@
     }));
 
     function draw(){
+      if (!ctx) return;
       ctx.clearRect(0,0,canvas.width,canvas.height);
       ctx.fillStyle="rgba(255,255,255,0.3)";
       particles.forEach(p=>{
@@ -75,16 +76,16 @@
   <canvas id="particle-canvas" class="absolute inset-0 w-full h-full pointer-events-none"></canvas>
 
   <!-- Header -->
-  <header class="relative z-10 p-6 text-center">
-    <h1 class="text-4xl md:text-5xl font-bold mb-4 text-blue-400">NerdTracker</h1>
-    <SearchBar on:itemAdded={(e)=>{
-      const type = e.detail.type;
-      if(type=='Movie') fetchData("movies", d=>movies=d);
-      if(type=='Show') fetchData("shows", d=>shows=d);
-      if(type=='Anime') fetchData("animes", d=>anime=d);
-      if(type=='Game') fetchData("games", d=>games=d);
-    }}/>
-  </header>
+ <header class="relative z-50 p-6 text-center">
+  <h1 class="text-4xl md:text-5xl font-bold mb-4 text-blue-400">NerdTracker</h1>
+  <SearchBar on:itemAdded={(e)=>{
+    const type = e.detail.type;
+    if(type=='Movie') fetchData("movies", d=>movies=d);
+    if(type=='Show') fetchData("shows", d=>shows=d);
+    if(type=='Anime') fetchData("animes", d=>anime=d);
+    if(type=='Game') fetchData("games", d=>games=d);
+  }}/>
+</header>
 
   <!-- Tabs with animated underline -->
   <div class="relative z-10 flex justify-center gap-6 mb-8 border-b border-gray-700">
@@ -92,7 +93,7 @@
       <button
         class="py-2 px-4 font-semibold text-gray-300 hover:text-white transition-colors relative"
         class:selected={activeTab===tab}
-        on:click={()=>activeTab=tab}
+        on:click={()=>activeTab=tab as typeof activeTab}
       >
         {tab}
         {#if activeTab===tab}
@@ -103,7 +104,7 @@
   </div>
 
   <!-- Grid section -->
-<section class="relative z-10 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6 px-4 md:px-6">
+<section class="relative z-10 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-6 px-4 md:px-6">
 
   {#if activeTab === "Movies"}
     {#each movies as item}
@@ -112,8 +113,8 @@
           <img src={item.poster} alt={item.title} class="w-full aspect-[2/3] object-cover"/>
         </a>
         <div class="p-4 space-y-1">
-          <h3 class="font-bold text-lg group-hover:text-blue-400">{item.title}</h3>
-          {#if item.year}<p class="text-sm text-gray-400">Year: {item.year}</p>{/if}
+          <a href={`/movies/${item._id}`} class="font-bold text-lg group-hover:text-blue-400">{item.title}</a>
+          {#if item.year}<p class="text-sm text-gray-400">📆 {item.year}</p>{/if}
           {#if item.rating}<p class="text-sm text-gray-400">⭐ {item.rating}</p>{/if}
           {#if item.genres?.length}
             <div class="flex flex-wrap gap-1 mt-1">
@@ -138,9 +139,9 @@
           <img src={item.poster} alt={item.title} class="w-full aspect-[2/3] object-cover"/>
         </a>
         <div class="p-4 space-y-1">
-          <h3 class="font-bold text-lg group-hover:text-blue-400">{item.title}</h3>
-          {#if item.seasons}<p class="text-sm text-gray-400">Seasons: {item.seasons}</p>{/if}
-          {#if item.episodes}<p class="text-sm text-gray-400">Episodes: {item.episodes}</p>{/if}
+          <a href={`/shows/${item._id}`} class="font-bold text-lg group-hover:text-blue-400">{item.title}</a>
+          {#if item.seasons}<p class="text-sm text-gray-400">📺Seasons: {item.seasons}</p>{/if}
+          {#if item.episodes}<p class="text-sm text-gray-400">🎬Episodes: {item.episodes}</p>{/if}
           {#if item.rating}<p class="text-sm text-gray-400">⭐ {item.rating}</p>{/if}
           {#if item.genres?.length}
             <div class="flex flex-wrap gap-1 mt-1">
@@ -165,9 +166,9 @@
           <img src={item.poster} alt={item.title} class="w-full aspect-[2/3] object-cover"/>
         </a>
         <div class="p-4 space-y-1">
-          <h3 class="font-bold text-lg group-hover:text-blue-400">{item.title}</h3>
-          {#if item.seasons}<p class="text-sm text-gray-400">Seasons: {item.seasons}</p>{/if}
-          {#if item.episodes}<p class="text-sm text-gray-400">Episodes: {item.episodes}</p>{/if}
+          <a href={`/animes/${item._id}`} class="font-bold text-lg group-hover:text-blue-400">{item.title}</a>
+          {#if item.seasons}<p class="text-sm text-gray-400">📺Seasons: {item.seasons}</p>{/if}
+          {#if item.episodes}<p class="text-sm text-gray-400">🎬Episodes: {item.episodes}</p>{/if}
           {#if item.rating}<p class="text-sm text-gray-400">⭐ {item.rating}</p>{/if}
           {#if item.genres?.length}
             <div class="flex flex-wrap gap-1 mt-1">
@@ -192,8 +193,8 @@
           <img src={item.cover ?? item.poster} alt={item.title} class="w-full aspect-[2/3] object-cover"/>
         </a>
         <div class="p-4 space-y-1">
-          <h3 class="font-bold text-lg group-hover:text-blue-400">{item.title}</h3>
-          {#if item.year}<p class="text-sm text-gray-400">Year: {item.year}</p>{/if}
+          <a href={`/games/${item._id}`} class="font-bold text-lg group-hover:text-blue-400">{item.title}</a>
+          {#if item.year}<p class="text-sm text-gray-400">📆 {item.year}</p>{/if}
           {#if item.rating}<p class="text-sm text-gray-400">⭐ {item.rating}</p>{/if}
           {#if item.genres?.length}
             <div class="flex flex-wrap gap-1 mt-1">

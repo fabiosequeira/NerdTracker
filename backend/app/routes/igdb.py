@@ -34,6 +34,10 @@ async def _get_igdb_token() -> str:
         data = resp.json()
         _igdb_token = data.get("access_token")
         _igdb_token_expiry = time.time() + data.get("expires_in", 0) - 60
+
+        if not _igdb_token:
+            raise HTTPException(status_code=500, detail="IGDB token is missing")
+
         return _igdb_token
 
 
@@ -51,7 +55,7 @@ async def search_games(query: str):
     # Request name, release date, genres, rating, and cover
     body = f'''
         search "{query}";
-        fields id,name,first_release_date,genres.name,rating,cover.image_id;
+        fields id,name,first_release_date,hypes,genres.name,rating,cover.image_id;
         limit 10;
     '''
 
@@ -73,6 +77,7 @@ async def search_games(query: str):
             "id": g.get("id"),
             "title": g.get("name"),
             "year": g.get("first_release_date"),
+            "popularity": g.get("hypes", 0),   # <- add this line
             "genres": [genre["name"] for genre in g.get("genres", [])] if g.get("genres") else [],
             "rating": round(g["rating"], 1) if g.get("rating") else None,
             "poster": f"https://images.igdb.com/igdb/image/upload/t_cover_big/{g['cover']['image_id']}.jpg"
