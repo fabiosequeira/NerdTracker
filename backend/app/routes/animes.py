@@ -15,6 +15,13 @@ async def list_animes():
 
 @router.post("/", response_model=Anime)
 async def add_anime(tmdb_id: int):
+    
+    #chek for existing anime
+    existing = await Anime.find_one(Anime.tmdb_id == tmdb_id)
+    if existing:
+        raise HTTPException(status_code=400, detail="Anime already exists")
+    
+    
     url = f"https://api.themoviedb.org/3/tv/{tmdb_id}"
     params = {
         "api_key": TMDB_API_KEY,
@@ -43,11 +50,11 @@ async def add_anime(tmdb_id: int):
         "episodes": details.get("number_of_episodes"),
         "videos": [
             {"name": v["name"], "key": v["key"], "site": v["site"], "type": v["type"]}
-            for v in details.get("videos", {}).get("results", [])
+            for v in details.get("videos", {}).get("results", [])[:6]
         ],
         "images": [
             f"https://image.tmdb.org/t/p/original{i['file_path']}"
-            for i in details.get("images", {}).get("backdrops", [])
+            for i in details.get("images", {}).get("backdrops", [])[:12]
         ],
         "popularity": details.get("popularity"),
         "adult": details.get("adult"),

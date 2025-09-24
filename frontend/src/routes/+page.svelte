@@ -68,6 +68,17 @@
     draw();
     window.addEventListener("resize",()=>{canvas.width=window.innerWidth;canvas.height=window.innerHeight});
   });
+
+  let sortOrder: "release" | "rating" | "title" = "release"; // default sorting
+
+function sortItems(items: any[]) {
+  return [...items].sort((a, b) => {
+    if (sortOrder === "release") return (b.year ?? 0) - (a.year ?? 0);
+    if (sortOrder === "rating") return (b.rating ?? 0) - (a.rating ?? 0);
+    if (sortOrder === "title") return a.title.localeCompare(b.title);
+    return 0;
+  });
+}
 </script>
 
 <main class="relative bg-gray-900 min-h-screen text-gray-100 overflow-x-hidden">
@@ -103,11 +114,22 @@
     {/each}
   </div>
 
-  <!-- Grid section -->
+
+  
+<div class="flex justify-end gap-4 mb-4 px-4 md:px-6">
+  <label for="sort" class="text-gray-300">Sort by:</label>
+  <select id="sort" bind:value={sortOrder} class="bg-gray-700 text-gray-100 rounded px-2 py-1">
+    <option value="release">Release Date</option>
+    <option value="rating">Rating</option>
+    <option value="title">Title</option>
+  </select>
+</div>
+
+<!-- Grid section -->
 <section class="relative z-10 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-6 px-4 md:px-6">
 
   {#if activeTab === "Movies"}
-    {#each movies as item}
+    {#each sortItems(movies) as item}
       <div class="relative bg-gray-800 rounded-xl overflow-hidden shadow-lg hover:shadow-2xl hover:scale-105 transform transition duration-300 cursor-pointer group">
         <a href={`/movies/${item._id}`}>
           <img src={item.poster} alt={item.title} class="w-full aspect-[2/3] object-cover"/>
@@ -133,7 +155,7 @@
   {/if}
 
   {#if activeTab === "Shows"}
-    {#each shows as item}
+    {#each sortItems(shows) as item}
       <div class="relative bg-gray-800 rounded-xl overflow-hidden shadow-lg hover:shadow-2xl hover:scale-105 transform transition duration-300 cursor-pointer group">
         <a href={`/shows/${item._id}`}>
           <img src={item.poster} alt={item.title} class="w-full aspect-[2/3] object-cover"/>
@@ -160,7 +182,7 @@
   {/if}
 
   {#if activeTab === "Anime"}
-    {#each anime as item}
+    {#each sortItems(anime) as item}
       <div class="relative bg-gray-800 rounded-xl overflow-hidden shadow-lg hover:shadow-2xl hover:scale-105 transform transition duration-300 cursor-pointer group">
         <a href={`/animes/${item._id}`}>
           <img src={item.poster} alt={item.title} class="w-full aspect-[2/3] object-cover"/>
@@ -187,7 +209,7 @@
   {/if}
 
   {#if activeTab === "Game"}
-    {#each games as item}
+    {#each sortItems(games) as item}
       <div class="relative bg-gray-800 rounded-xl overflow-hidden shadow-lg hover:shadow-2xl hover:scale-105 transform transition duration-300 cursor-pointer group">
         <a href={`/games/${item._id}`}>
           <img src={item.cover ?? item.poster} alt={item.title} class="w-full aspect-[2/3] object-cover"/>
@@ -211,6 +233,7 @@
       </div>
     {/each}
   {/if}
+
 </section>
 </main>
 

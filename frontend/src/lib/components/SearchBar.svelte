@@ -99,6 +99,12 @@
 
     if (!endpoint) return;
 
+    //check local items before sending request
+    if (items.some(existing => existing.id === item.id || existing.igdb_id === item.id || existing.tmdb_id === item.id)) {
+      alert(`${item.type} "${item.title}" is already in your library ✅`);
+      return;
+    }
+
     try {
       let res;
       if (item.type === "Game") {

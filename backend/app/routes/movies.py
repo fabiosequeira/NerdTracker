@@ -15,6 +15,12 @@ async def list_movies():
 
 @router.post("/", response_model=Movie)
 async def add_movie(tmdb_id: int):
+    
+    #chek for existing movie
+    existing = await Movie.find_one(Movie.tmdb_id == tmdb_id)
+    if existing:
+        raise HTTPException(status_code=400, detail="Movie already exists")
+    
     url = f"https://api.themoviedb.org/3/movie/{tmdb_id}"
     params = {
         "api_key": TMDB_API_KEY,
@@ -40,11 +46,11 @@ async def add_movie(tmdb_id: int):
         "backdrop": f"https://image.tmdb.org/t/p/original{details['backdrop_path']}" if details.get("backdrop_path") else None,
         "videos": [
             {"name": v["name"], "key": v["key"], "site": v["site"], "type": v["type"]}
-            for v in details.get("videos", {}).get("results", [])
+            for v in details.get("videos", {}).get("results", [])[:6]
         ],
         "images": [
             f"https://image.tmdb.org/t/p/original{i['file_path']}"
-            for i in details.get("images", {}).get("backdrops", [])
+            for i in details.get("images", {}).get("backdrops", [])[:12]
         ],
         "popularity": details.get("popularity"),
         "adult": details.get("adult"),
