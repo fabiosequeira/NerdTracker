@@ -59,6 +59,7 @@ async def add_show(tmdb_id: int):
         "popularity": details.get("popularity"),
         "adult": details.get("adult"),
         "imdb_id": details.get("external_ids", {}).get("imdb_id"),
+        "in_production": details.get("in_production", False),
     }
 
     show = Show(**payload)

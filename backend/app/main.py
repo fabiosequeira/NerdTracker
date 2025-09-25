@@ -1,7 +1,9 @@
 from fastapi import FastAPI
+import asyncio
 from app.routes import movies, shows, animes, games, tmdb, igdb, jellyfin_webhook
 from app.db import init_db
 from fastapi.middleware.cors import CORSMiddleware
+from app.core.tasks import weekly_tmdb_sync
 
 origins = ["*"]
 
@@ -23,3 +25,5 @@ app.add_middleware(
 @app.on_event("startup")
 async def on_startup():
     await init_db()
+    # Start the weekly TMDB sync as a background task
+    asyncio.create_task(weekly_tmdb_sync())

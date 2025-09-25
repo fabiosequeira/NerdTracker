@@ -8,11 +8,11 @@ import time
 
 router = APIRouter(prefix="/games", tags=["games"])
 
-# Load your IGDB credentials
+#IGDB credentials
 IGDB_CLIENT_ID = os.getenv("IGDB_CLIENT_ID", "hsjerkcx7ssrpxnvrcqvb2id3vj91m")
 IGDB_CLIENT_SECRET = os.getenv("IGDB_CLIENT_SECRET", "h33kqwt5lbhnlc4zv1syqlor5g3iyw")
 
-# Simple in-memory token cache
+#in-memory token cache
 igdb_token = None
 igdb_token_expiry = 0
 
@@ -81,7 +81,6 @@ where id = {igdb_id};
         details = data[0]
 
 
-    # Build payload
     payload = {
         "igdb_id": details.get("id"),
         "title": details.get("name"),

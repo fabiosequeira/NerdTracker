@@ -16,7 +16,7 @@ async def list_animes():
 @router.post("/", response_model=Anime)
 async def add_anime(tmdb_id: int):
     
-    #chek for existing anime
+    #check for existing anime
     existing = await Anime.find_one(Anime.tmdb_id == tmdb_id)
     if existing:
         raise HTTPException(status_code=400, detail="Anime already exists")
@@ -59,6 +59,7 @@ async def add_anime(tmdb_id: int):
         "popularity": details.get("popularity"),
         "adult": details.get("adult"),
         "imdb_id": details.get("external_ids", {}).get("imdb_id"),
+        "in_production": details.get("in_production", False),
     }
 
     anime = Anime(**payload)

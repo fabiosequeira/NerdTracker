@@ -18,6 +18,7 @@ class Anime(Document):
     adult: Optional[bool] = None
     imdb_id: Optional[str] = None
     poster: Optional[str] = "https://upload.wikimedia.org/wikipedia/commons/6/65/No-Image-Placeholder.svg"
+    in_production: Optional[bool] = True
 
     class Settings:
         name = "anime"
