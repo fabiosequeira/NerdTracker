@@ -20,7 +20,9 @@ services:
   # Backend Service (FastAPI)
   # ---------------------------
   backend:
-    build: ./backend
+    build:
+      context: https://github.com/fabiosequeira/NerdTracker.git
+      dockerfile: backend/Dockerfile
     container_name: nerdtracker-backend
     env_file:
       - .env   # Reads MONGO_URI from project root
@@ -33,10 +35,12 @@ services:
   # Frontend Service (Svelte)
   # ---------------------------
   frontend:
-    build: ./frontend
+    build:
+      context: https://github.com/fabiosequeira/NerdTracker.git
+      dockerfile: frontend/Dockerfile
     container_name: nerdtracker-frontend
     ports:
-      - "4000:80"  # host 3000 → container 80
+      - "4000:80"  # host 4000 → container 80
     depends_on:
       - backend
 
