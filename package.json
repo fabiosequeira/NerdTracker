@@ -1,5 +1,9 @@
 {
   "dependencies": {
     "psn-api": "^2.15.0"
-  }
+  },
+  "scripts": {
+  "build": "svelte-kit build",
+  "preview": "node build/index.js"
+}
 }
