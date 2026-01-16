@@ -1,9 +1,12 @@
+import os
 import httpx
 from fastapi import APIRouter, Query
 
 router = APIRouter(prefix="/tmdb", tags=["tmdb"])
 
-TMDB_API_KEY = "279b31fd921c02d920708f2ecd2fae66"
+TMDB_API_KEY = os.getenv("TMDB_API_KEY")
+if not TMDB_API_KEY:
+    raise ValueError("TMDB_API_KEY is not set in environment")
 
 
 

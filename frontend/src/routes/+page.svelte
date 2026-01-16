@@ -34,40 +34,54 @@
     } else alert("Delete failed ❌");
   }
 
-  // Particle background
-  onMount(()=>{
-    const canvas = document.getElementById("particle-canvas") as HTMLCanvasElement;
-    if(!canvas) return;
-    const ctx = canvas.getContext("2d");
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+onMount(() => {
+  const canvas = document.getElementById("particle-canvas") as HTMLCanvasElement;
+  if (!canvas) return;
+  const ctx = canvas.getContext("2d");
+  
+  function resizeCanvas() {
+    canvas.width = document.body.scrollWidth;
+    canvas.height = document.body.scrollHeight;
+  }
+  
+  resizeCanvas();
 
-    const particles = Array.from({length:80}, ()=>({
-      x: Math.random()*canvas.width,
-      y: Math.random()*canvas.height,
-      r: Math.random()*2+1,
-      dx: (Math.random()-0.5)*0.5,
-      dy: (Math.random()-0.5)*0.5
-    }));
+  const particles = Array.from({ length: 80 }, () => ({
+    x: Math.random() * canvas.width,
+    y: Math.random() * canvas.height,
+    r: Math.random() * 2 + 1,
+    dx: (Math.random() - 0.5) * 0.5,
+    dy: (Math.random() - 0.5) * 0.5,
+  }));
 
-    function draw(){
-      if (!ctx) return;
-      ctx.clearRect(0,0,canvas.width,canvas.height);
-      ctx.fillStyle="rgba(255,255,255,0.3)";
-      particles.forEach(p=>{
-        ctx.beginPath();
-        ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
-        ctx.fill();
-        p.x+=p.dx;
-        p.y+=p.dy;
-        if(p.x<0||p.x>canvas.width)p.dx*=-1;
-        if(p.y<0||p.y>canvas.height)p.dy*=-1;
-      });
-      requestAnimationFrame(draw);
-    }
-    draw();
-    window.addEventListener("resize",()=>{canvas.width=window.innerWidth;canvas.height=window.innerHeight});
+  function draw() {
+    if (!ctx) return;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = "rgba(255,255,255,0.3)";
+    particles.forEach(p => {
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fill();
+      p.x += p.dx;
+      p.y += p.dy;
+
+      if (p.x < 0 || p.x > canvas.width) p.dx *= -1;
+      if (p.y < 0 || p.y > canvas.height) p.dy *= -1;
+    });
+    requestAnimationFrame(draw);
+  }
+  
+  draw();
+
+  window.addEventListener("resize", () => {
+    resizeCanvas();
+    // Optional: reposition particles to stay inside new canvas
+    particles.forEach(p => {
+      p.x = Math.min(p.x, canvas.width);
+      p.y = Math.min(p.y, canvas.height);
+    });
   });
+});
 
   let sortOrder: "release" | "rating" | "title" = "release"; // default sorting
 
@@ -84,7 +98,8 @@ function sortItems(items: any[]) {
 <main class="relative bg-gray-900 min-h-screen text-gray-100 overflow-x-hidden">
 
   <!-- Particle background -->
-  <canvas id="particle-canvas" class="absolute inset-0 w-full h-full pointer-events-none"></canvas>
+  <canvas id="particle-canvas" class="fixed top-0 left-0 pointer-events-none"></canvas>
+
 
   <!-- Header -->
  <header class="relative z-50 p-6 text-center">

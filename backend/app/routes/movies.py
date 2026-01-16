@@ -5,7 +5,9 @@ import httpx
 import os
 
 router = APIRouter(prefix="/movies", tags=["movies"])
-TMDB_API_KEY = os.getenv("TMDB_API_KEY", "279b31fd921c02d920708f2ecd2fae66")
+TMDB_API_KEY = os.getenv("TMDB_API_KEY")
+if not TMDB_API_KEY:
+    raise ValueError("TMDB_API_KEY is not set in environment")
 
 
 @router.get("/", response_model=list[Movie])
@@ -16,7 +18,7 @@ async def list_movies():
 @router.post("/", response_model=Movie)
 async def add_movie(tmdb_id: int):
     
-    #chek for existing movie
+    #check for existing movie
     existing = await Movie.find_one(Movie.tmdb_id == tmdb_id)
     if existing:
         raise HTTPException(status_code=400, detail="Movie already exists")

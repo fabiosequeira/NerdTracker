@@ -1,0 +1,47 @@
+version: "3.8"
+
+services:
+  # ---------------------------
+  # MongoDB Service
+  # ---------------------------
+  mongodb:
+    image: mongo:7
+    container_name: nerdtracker-mongo
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: nerdtracker_user
+      MONGO_INITDB_ROOT_PASSWORD: Leonor1702
+      MONGO_INITDB_DATABASE: NerdTracker
+    volumes:
+      - mongo_data:/data/db
+    # No host ports exposed (safer); backend accesses Mongo internally
+
+  # ---------------------------
+  # Backend Service (FastAPI)
+  # ---------------------------
+  backend:
+    build: ./backend
+    container_name: nerdtracker-backend
+    env_file:
+      - .env   # Reads MONGO_URI from project root
+    ports:
+      - "5000:8000"  # host 5000 → container 8000
+    depends_on:
+      - mongodb
+
+  # ---------------------------
+  # Frontend Service (Svelte)
+  # ---------------------------
+  frontend:
+    build: ./frontend
+    container_name: nerdtracker-frontend
+    ports:
+      - "4000:80"  # host 3000 → container 80
+    depends_on:
+      - backend
+
+# ---------------------------
+# Volumes (persistent data)
+# ---------------------------
+volumes:
+  mongo_data:

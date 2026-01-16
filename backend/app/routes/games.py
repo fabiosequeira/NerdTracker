@@ -9,8 +9,10 @@ import time
 router = APIRouter(prefix="/games", tags=["games"])
 
 #IGDB credentials
-IGDB_CLIENT_ID = os.getenv("IGDB_CLIENT_ID", "hsjerkcx7ssrpxnvrcqvb2id3vj91m")
-IGDB_CLIENT_SECRET = os.getenv("IGDB_CLIENT_SECRET", "h33kqwt5lbhnlc4zv1syqlor5g3iyw")
+IGDB_CLIENT_ID = os.getenv("IGDB_CLIENT_ID")
+IGDB_CLIENT_SECRET = os.getenv("IGDB_CLIENT_SECRET")
+if not IGDB_CLIENT_ID or not IGDB_CLIENT_SECRET:
+    raise ValueError("IGDB_CLIENT_ID or IGDB_CLIENT_SECRET is not set in environment")
 
 #in-memory token cache
 igdb_token = None

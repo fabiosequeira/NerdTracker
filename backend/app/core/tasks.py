@@ -6,7 +6,9 @@ from datetime import datetime
 from app.models.show import Show
 from app.models.anime import Anime
 
-TMDB_API_KEY = os.getenv("TMDB_API_KEY", "279b31fd921c02d920708f2ecd2fae66")
+TMDB_API_KEY = os.getenv("TMDB_API_KEY")
+if not TMDB_API_KEY:
+    raise ValueError("TMDB_API_KEY is not set in environment")
 TMDB_BASE = "https://api.themoviedb.org/3"
 
 
@@ -31,7 +33,7 @@ async def sync_show_with_tmdb(show: Show):
         show.in_production = details.get("in_production", False)
 
         await show.save()
-        print(f"✅ Updated show {show.name} ({show.tmdb_id})")
+        print(f"✅ Updated show {show.title} ({show.tmdb_id})")
         return True
 
 
@@ -56,7 +58,7 @@ async def sync_anime_with_tmdb(anime: Anime):
         anime.in_production = details.get("in_production", False)
 
         await anime.save()
-        print(f"✅ Updated anime {anime.name} ({anime.tmdb_id})")
+        print(f"✅ Updated anime {anime.title} ({anime.tmdb_id})")
         return True
 
 
