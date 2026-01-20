@@ -12,7 +12,7 @@ RUN npm install --legacy-peer-deps
 COPY . .
 
 # Build using npx so it finds local svelte-kit
-RUN npx svelte-kit build
+RUN npm run build
 
 EXPOSE 4000
 
