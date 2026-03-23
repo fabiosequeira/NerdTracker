@@ -37,6 +37,13 @@ async def fill_animes():
     for anime in animes:
         if not anime.episodes_list:
             print(f"Fetching episodes for {anime.title}...")
-            anime.episodes_list = await fetch_episodes(anime.tmdb_id)
+            try:
+                if anime.tmdb_id is not None:
+                    anime.episodes_list = await fetch_episodes(anime.tmdb_id)
+                else:
+                    print(f"Skipping {anime.title}: tmdb_id is None")
+            except Exception as e:
+                print(f"Failed to fetch episodes for {anime.title}: {e}")
+            
             await anime.save()
-            print(f"Saved {len(anime.episodes_list)} episodes for {anime.title}")
+            print(f"Saved {len(anime.episodes_list or [])} episodes for {anime.title}")
