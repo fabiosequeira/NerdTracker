@@ -1,20 +1,17 @@
 FROM python:3.11-slim
 
-# Set working directory to backend
 WORKDIR /app/backend
-
 ENV PYTHONUNBUFFERED=1
 
 RUN apt-get update && apt-get install -y gcc
 
 # Copy only requirements first
-COPY requirements.txt .
+COPY backend/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy backend code **once** to /app/backend
-COPY ./backend/* ./
+# Copy the contents of backend/app (not the backend folder itself)
+COPY backend/app ./app
 
 EXPOSE 8000
 
-# Run uvicorn pointing to correct module
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
