@@ -39,6 +39,36 @@ async def add_show(tmdb_id: int):
         if resp.status_code != 200:
             raise HTTPException(status_code=resp.status_code, detail="TMDb request failed")
         details = resp.json()
+        
+    episodes_list = []
+    async with httpx.AsyncClient() as client:
+        for season in details.get("seasons", []):
+            season_number = season.get("season_number")
+
+            # Skip specials (season 0) if you want
+            if season_number == 0:
+                continue
+
+            season_url = f"https://api.themoviedb.org/3/tv/{tmdb_id}/season/{season_number}"
+            season_resp = await client.get(season_url, params={
+                "api_key": TMDB_API_KEY,
+                "language": "en-US"
+            })
+
+            if season_resp.status_code != 200:
+                continue
+
+            season_data = season_resp.json()
+
+            for ep in season_data.get("episodes", []):
+                episodes_list.append({
+                    "season": season_number,
+                    "episode": ep.get("episode_number"),
+                    "title": ep.get("name"),
+                    "overview": ep.get("overview"),
+                    "air_date": ep.get("air_date"),
+                    "still": f"https://image.tmdb.org/t/p/w500{ep['still_path']}" if ep.get("still_path") else None
+                })
 
     payload = {
         "tmdb_id": details.get("id"),
@@ -52,6 +82,7 @@ async def add_show(tmdb_id: int):
         "overview": details.get("overview"),
         "seasons": details.get("number_of_seasons"),
         "episodes": details.get("number_of_episodes"),
+        "episodes_list": episodes_list,
         "videos": [
             {"name": v["name"], "key": v["key"], "site": v["site"], "type": v["type"]}
             for v in details.get("videos", {}).get("results", [])[:6]

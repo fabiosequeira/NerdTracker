@@ -5,6 +5,7 @@ from app.db import init_db
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.tasks import weekly_tmdb_sync
 from app.utils.fill_anime import fill_animes
+from app.utils.fill_shows import fill_shows
 
 origins = ["*"]
 
@@ -30,3 +31,4 @@ async def on_startup():
     asyncio.create_task(weekly_tmdb_sync())
     
     asyncio.create_task(fill_animes()) 
+    asyncio.create_task(fill_shows()) 
