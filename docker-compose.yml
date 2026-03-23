@@ -21,7 +21,7 @@ services:
   # ---------------------------
   backend:
     build:
-      context: https://github.com/fabiosequeira/NerdTracker.git
+      context: .
       dockerfile: backend/Dockerfile
     container_name: nerdtracker-backend
     env_file:
@@ -36,7 +36,7 @@ services:
   # ---------------------------
   frontend:
     build:
-      context: https://github.com/fabiosequeira/NerdTracker.git
+      context: .
       dockerfile: frontend/Dockerfile
     container_name: nerdtracker-frontend
     ports:
