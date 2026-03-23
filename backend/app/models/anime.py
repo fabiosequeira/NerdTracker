@@ -1,12 +1,22 @@
 from beanie import Document
 from typing import Optional, List, Dict
+from pydantic import BaseModel
 
+
+class Episode(BaseModel):
+    season: int
+    episode: int
+    title: Optional[str] = None
+    overview: Optional[str] = None
+    air_date: Optional[str] = None
+    still: Optional[str] = None
 class Anime(Document):
     tmdb_id: Optional[int] = None    
     title: str
     year: Optional[int] = None
     seasons: Optional[int] = None
     episodes: Optional[int] = None
+    episodes_list: Optional[List[Episode]] = []
     genres: List[str] = []
     rating: Optional[float] = None
     rating_count: Optional[int] = None
