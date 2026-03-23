@@ -27,7 +27,7 @@ services:
     env_file:
       - .env   # Reads MONGO_URI from project root
     ports:
-      - "5000:8000"  # host 5000 → container 8000
+      - "5001:8000"  # host 5001 → container 8000
     depends_on:
       - mongodb
 
