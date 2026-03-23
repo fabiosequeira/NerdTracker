@@ -43,10 +43,10 @@
 
     try {
       const [moviesRes, showsRes, animeRes, gamesRes] = await Promise.all([
-        fetch(`http://127.0.0.1:8000/tmdb/search/movie?query=${encodeURIComponent(q)}`, { signal }),
-        fetch(`http://127.0.0.1:8000/tmdb/search/tv?query=${encodeURIComponent(q)}`, { signal }),
-        fetch(`http://127.0.0.1:8000/tmdb/search/anime?query=${encodeURIComponent(q)}`, { signal }),
-        fetch(`http://127.0.0.1:8000/igdb/search/game?query=${encodeURIComponent(q)}`, { signal })
+        fetch(`http://backend:8000/tmdb/search/movie?query=${encodeURIComponent(q)}`, { signal }),
+        fetch(`http://backend:8000/tmdb/search/tv?query=${encodeURIComponent(q)}`, { signal }),
+        fetch(`http://backend:8000/tmdb/search/anime?query=${encodeURIComponent(q)}`, { signal }),
+        fetch(`http://backend:8000/igdb/search/game?query=${encodeURIComponent(q)}`, { signal })
       ]);
 
       const movies = await moviesRes.json();
@@ -83,7 +83,7 @@
 
   async function fetchItems(endpoint: string) {
     try {
-      const res = await fetch(`http://127.0.0.1:8000/${endpoint}/`);
+      const res = await fetch(`http://backend:8000/${endpoint}/`);
       if (res.ok) items = await res.json();
     } catch (err) {
       console.error("Failed to fetch items:", err);
@@ -108,9 +108,9 @@
     try {
       let res;
       if (item.type === "Game") {
-        res = await fetch(`http://127.0.0.1:8000/${endpoint}/?igdb_id=${item.id}`, { method: "POST" });
+        res = await fetch(`http://backend:8000/${endpoint}/?igdb_id=${item.id}`, { method: "POST" });
       } else {
-        res = await fetch(`http://127.0.0.1:8000/${endpoint}/?tmdb_id=${item.id}`, { method: "POST" });
+        res = await fetch(`http://backend:8000/${endpoint}/?tmdb_id=${item.id}`, { method: "POST" });
       }
 
       if (!res.ok) {
