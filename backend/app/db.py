@@ -1,7 +1,8 @@
 import os
 from beanie import init_beanie
 import motor.motor_asyncio
-
+from dotenv import load_dotenv
+load_dotenv()
 from app.models.movie import Movie
 from app.models.show import Show
 from app.models.anime import Anime

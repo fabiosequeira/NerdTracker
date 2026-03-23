@@ -2,18 +2,16 @@ FROM node:20
 
 WORKDIR /app
 
-# Copy package files first
-COPY package*.json ./
+COPY frontend/package*.json ./
+RUN npm install
 
-# Install dependencies ignoring peer conflicts
-RUN npm install --legacy-peer-deps
+COPY frontend/ .
 
-# Copy source code
-COPY . .
-
-# Build using npx so it finds local svelte-kit
 RUN npm run build
 
-EXPOSE 4000
+# Install a static server
+RUN npm install -g serve
 
-CMD ["node", "build/index.js"]
+EXPOSE 80
+
+CMD ["serve", "-s", "build", "-l", "80"]

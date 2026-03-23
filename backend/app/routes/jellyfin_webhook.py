@@ -2,6 +2,8 @@
 from fastapi import APIRouter, Request
 import httpx
 import os
+from dotenv import load_dotenv
+load_dotenv()
 
 router = APIRouter(prefix="/jellyfin", tags=["jellyfin"])
 

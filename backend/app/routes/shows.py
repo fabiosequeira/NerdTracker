@@ -3,6 +3,8 @@ from beanie import PydanticObjectId
 from app.models.show import Show
 import httpx
 import os
+from dotenv import load_dotenv
+load_dotenv()
 
 router = APIRouter(prefix="/shows", tags=["shows"])
 TMDB_API_KEY = os.getenv("TMDB_API_KEY")

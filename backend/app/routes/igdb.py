@@ -3,6 +3,8 @@ import os
 import time
 import httpx
 from fastapi import APIRouter, HTTPException, Query
+from dotenv import load_dotenv
+load_dotenv()
 
 router = APIRouter(prefix="/igdb", tags=["igdb"])
 

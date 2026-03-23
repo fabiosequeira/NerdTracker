@@ -1,6 +1,8 @@
 import os
 import httpx
 from fastapi import APIRouter, Query
+from dotenv import load_dotenv
+load_dotenv()
 
 router = APIRouter(prefix="/tmdb", tags=["tmdb"])
 

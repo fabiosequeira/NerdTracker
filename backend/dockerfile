@@ -1,20 +1,22 @@
-# Use Python 3.12 slim
-FROM python:3.12-slim
+FROM python:3.11-slim
 
-# Set working directory inside container
 WORKDIR /app
 
-# Copy backend code (app folder)
-COPY ./backend /backend/app
+# Prevent Python from buffering logs
+ENV PYTHONUNBUFFERED=1
 
-# Install system dependencies needed for some Python packages
-RUN apt-get update && \
-    apt-get install -y build-essential gcc libffi-dev && \
-    pip install --no-cache-dir -r requirements.txt && \
-    apt-get remove -y build-essential gcc && apt-get autoremove -y
+# Install system deps (optional but useful)
+RUN apt-get update && apt-get install -y gcc
 
-# Expose FastAPI port
+# Copy requirements first
+COPY backend/requirements.txt .
+
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy backend code
+COPY backend/ .
+
 EXPOSE 8000
 
-# Start FastAPI
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# IMPORTANT: bind to 0.0.0.0
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]

@@ -5,6 +5,8 @@ from typing import List, Optional
 import httpx
 import os
 import time
+from dotenv import load_dotenv
+load_dotenv()
 
 router = APIRouter(prefix="/games", tags=["games"])
 
