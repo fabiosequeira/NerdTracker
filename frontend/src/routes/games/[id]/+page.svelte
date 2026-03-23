@@ -9,7 +9,8 @@
   let tabRefs: (HTMLButtonElement | null)[] = [];
   let underlineStyle = "";
 
-  const apiBase = "http://127.0.0.1:8000";
+  const apiBase = 'http://backend:8000'; // PRODUCTION
+  //   const apiBase = 'http://127.0.0.1:8000'; - LOCAL
   $: gameId = $page.params.id;
 
   async function fetchGame() {
