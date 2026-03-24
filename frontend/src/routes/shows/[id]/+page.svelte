@@ -28,10 +28,12 @@
 
   // --- Episodes helpers ---
 
+    let selectedSeason = null;
+
+    // Group episodes by season (sorted)
     function groupBySeason(episodes) {
       if (!episodes) return {};
 
-      // sort properly (season → episode)
       const sorted = [...episodes].sort((a, b) => {
         if (a.season !== b.season) return a.season - b.season;
         return a.episode - b.episode;
@@ -44,15 +46,27 @@
       }, {});
     }
 
-    let selectedSeason = null;
-
+    // Reactive data
     $: grouped = groupBySeason(show?.episodes_list || []);
-    $: seasons = Object.keys(grouped).sort((a, b) => a - b);
 
-    // set default season (first one)
+    // Seasons as numbers, sorted, with specials last
+    $: seasons = Object.keys(grouped)
+      .map(Number)
+      .sort((a, b) => {
+        if (a === 0) return 1;
+        if (b === 0) return -1;
+        return a - b;
+      });
+
+    // Default selection logic (runs once properly)
     $: if (seasons.length && selectedSeason === null) {
-      selectedSeason = seasons[0];
+      selectedSeason = seasons.includes(1)
+        ? 1
+        : seasons[0];
     }
+
+    // Current episodes (safe access)
+    $: currentEpisodes = grouped[selectedSeason] || [];
 
   function setActive(tab: typeof activeTab, index: number) {
     activeTab = tab;

@@ -34,16 +34,35 @@ async def fetch_episodes(tmdb_id: int):
 
 async def fill_shows():
     shows = await Show.find_all().to_list()
+
     for show in shows:
+        needs_update = False
+
+        # Case 1: no episodes at all
         if not show.episodes_list:
-            print(f"Fetching episodes for {show.title}...")
-            try:
-                if show.tmdb_id is not None:
-                    show.episodes_list = await fetch_episodes(show.tmdb_id)
-                else:
-                    print(f"Skipping {show.title}: tmdb_id is None")
-            except Exception as e:
-                print(f"Failed to fetch episodes for {show.title}: {e}")
-            
-            await show.save()
-            print(f"Saved {len(show.episodes_list or [])} episodes for {show.title}")
+            needs_update = True
+
+        # Case 2: episodes exist but no season 0
+        else:
+            has_specials = any(ep.season == 0 for ep in show.episodes_list)
+            if not has_specials:
+                needs_update = True
+
+        if not needs_update:
+            continue
+
+        print(f"Fetching episodes for {show.title}...")
+
+        try:
+            if show.tmdb_id is not None:
+                show.episodes_list = await fetch_episodes(show.tmdb_id)
+            else:
+                print(f"Skipping {show.title}: tmdb_id is None")
+                continue
+
+        except Exception as e:
+            print(f"Failed to fetch episodes for {show.title}: {e}")
+            continue
+
+        await show.save()
+        print(f"Saved {len(show.episodes_list or [])} episodes for {show.title}")
