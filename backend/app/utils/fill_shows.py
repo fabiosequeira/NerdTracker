@@ -35,7 +35,7 @@ async def fetch_episodes(tmdb_id: int):
 async def fill_shows():
     shows = await Show.find_all().to_list()
     for show in shows:
-        if not show.episodes_list:
+        # if not show.episodes_list:
             print(f"Fetching episodes for {show.title}...")
             try:
                 if show.tmdb_id is not None:
