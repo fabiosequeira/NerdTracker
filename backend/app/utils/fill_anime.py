@@ -32,54 +32,18 @@ async def fetch_episodes(tmdb_id: int):
                 })
     return episodes_list
 
-# async def fill_animes():
-#     animes = await Anime.find_all().to_list()
-#     for anime in animes:
-#         if not anime.episodes_list:
-#             print(f"Fetching episodes for {anime.title}...")
-#             try:
-#                 if anime.tmdb_id is not None:
-#                     anime.episodes_list = await fetch_episodes(anime.tmdb_id)
-#                 else:
-#                     print(f"Skipping {anime.title}: tmdb_id is None")
-#             except Exception as e:
-#                 print(f"Failed to fetch episodes for {anime.title}: {e}")
-            
-#             await anime.save()
-#             print(f"Saved {len(anime.episodes_list or [])} episodes for {anime.title}")
-            
-            
-async def fill_anime():
+async def fill_animes():
     animes = await Anime.find_all().to_list()
-
     for anime in animes:
-        needs_update = False
-
-        # Case 1: no episodes at all
         if not anime.episodes_list:
-            needs_update = True
-
-        # Case 2: episodes exist but no season 0
-        else:
-            has_specials = any(ep.season == 0 for ep in anime.episodes_list)
-            if not has_specials:
-                needs_update = True
-
-        if not needs_update:
-            continue
-
-        print(f"Fetching episodes for {anime.title}...")
-
-        try:
-            if anime.tmdb_id is not None:
-                anime.episodes_list = await fetch_episodes(anime.tmdb_id)
-            else:
-                print(f"Skipping {anime.title}: tmdb_id is None")
-                continue
-
-        except Exception as e:
-            print(f"Failed to fetch episodes for {anime.title}: {e}")
-            continue
-
-        await anime.save()
-        print(f"Saved {len(anime.episodes_list or [])} episodes for {anime.title}")
+            print(f"Fetching episodes for {anime.title}...")
+            try:
+                if anime.tmdb_id is not None:
+                    anime.episodes_list = await fetch_episodes(anime.tmdb_id)
+                else:
+                    print(f"Skipping {anime.title}: tmdb_id is None")
+            except Exception as e:
+                print(f"Failed to fetch episodes for {anime.title}: {e}")
+            
+            await anime.save()
+            print(f"Saved {len(anime.episodes_list or [])} episodes for {anime.title}")
