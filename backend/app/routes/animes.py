@@ -46,8 +46,8 @@ async def add_anime(tmdb_id: int):
             season_number = season.get("season_number")
 
             # Skip specials (season 0) if you want
-            if season_number == 0:
-                continue
+            # if season_number == 0:
+            #     continue
 
             season_url = f"https://api.themoviedb.org/3/tv/{tmdb_id}/season/{season_number}"
             season_resp = await client.get(season_url, params={
@@ -61,6 +61,9 @@ async def add_anime(tmdb_id: int):
             season_data = season_resp.json()
 
             for ep in season_data.get("episodes", []):
+                if ep.get("episode_number") is None:
+                    continue
+                
                 episodes_list.append({
                     "season": season_number,
                     "episode": ep.get("episode_number"),

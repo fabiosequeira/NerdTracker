@@ -43,6 +43,16 @@
       }, {});
     }
 
+    let selectedSeason = null;
+
+    $: grouped = groupBySeason(anime?.episodes_list || []);
+    $: seasons = Object.keys(grouped).sort((a, b) => a - b);
+
+    // set default season (first one)
+    $: if (seasons.length && selectedSeason === null) {
+      selectedSeason = seasons[0];
+    }
+
 
 
   function setActive(tab: typeof activeTab, index: number) {
@@ -212,81 +222,92 @@ onMount(() => {
       {#if activeTab === "Episodes"}
         <div class="space-y-6 animate-fadeIn">
 
-          {#if anime.episodes_list?.length > 0}
+          {#if seasons.length > 0}
 
-            {#each Object.entries(groupBySeason(anime.episodes_list)) as [season, eps]}
-              <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
+            <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
 
-                <!-- Season Header -->
-                <div class="flex items-center justify-between mb-4">
-                  <h2 class="text-xl font-bold">
-                    Season {season}
-                  </h2>
+              <!-- Header -->
+              <div class="flex items-center justify-between mb-4">
 
-                  <span class="text-sm text-gray-400">
-                    {eps.length} episodes
-                  </span>
-                </div>
+                <!-- Season Dropdown -->
+                <select
+                  bind:value={selectedSeason}
+                  class="bg-gray-700 text-white px-3 py-2 rounded outline-none"
+                >
+                  {#each seasons as season}
+                    <option value={season}>
+                      {season == 0 ? "Specials" : `Season ${season}`}
+                    </option>
+                  {/each}
+                </select>
 
-                <!-- Episodes list -->
-                <div class="space-y-4">
+                <!-- Episode count -->
+                <span class="text-sm text-gray-400">
+                  {grouped[selectedSeason]?.length || 0} episodes
+                </span>
 
-                  {#each eps as ep}
-                    <div class="flex gap-4 bg-gray-700 p-4 rounded-lg hover:bg-gray-600 transition group">
+              </div>
 
-                      <!-- Thumbnail -->
-                      {#if ep.still}
-                        <img
-                          src={ep.still}
-                          alt={ep.title}
-                          class="w-32 h-20 object-cover rounded"
-                        />
-                      {:else}
-                        <div class="w-32 h-20 bg-gray-600 flex items-center justify-center text-xs text-gray-300 rounded">
-                          No Image
-                        </div>
-                      {/if}
+              <!-- Episodes list -->
+              <div class="space-y-4">
 
-                      <!-- Info -->
-                      <div class="flex-1">
+                {#each grouped[selectedSeason] as ep}
+                  <div class="flex gap-4 bg-gray-700 p-4 rounded-lg hover:bg-gray-600 transition group">
 
-                        <!-- Title -->
-                        <h3 class="font-semibold text-white">
-                          S{String(ep.season).padStart(2, "0")}E{String(ep.episode).padStart(2, "0")}
-                          — {ep.title ?? "Untitled"}
-                        </h3>
+                    <!-- Thumbnail -->
+                    {#if ep.still}
+                      <img
+                        src={ep.still}
+                        alt={ep.title}
+                        class="w-32 h-20 object-cover rounded"
+                      />
+                    {:else}
+                      <div class="w-32 h-20 bg-gray-600 flex items-center justify-center text-xs text-gray-300 rounded">
+                        No Image
+                      </div>
+                    {/if}
 
-                        <!-- Overview -->
-                        <p class="text-sm text-gray-300 line-clamp-2">
-                          {ep.overview ?? "No description available."}
+                    <!-- Info -->
+                    <div class="flex-1">
+
+                      <!-- Title -->
+                      <h3 class="font-semibold text-white">
+                        S{String(ep.season).padStart(2, "0")}E{String(ep.episode).padStart(2, "0")}
+                        — {ep.title ?? "Untitled"}
+                      </h3>
+
+                      <!-- Overview -->
+                      <p class="text-sm text-gray-300 line-clamp-2">
+                        {ep.overview ?? "No description available."}
+                      </p>
+
+                      <!-- Footer -->
+                      <div class="flex items-center justify-between mt-2">
+
+                        <!-- Air date -->
+                        <p class="text-xs text-gray-400">
+                          {ep.air_date ?? "Unknown date"}
                         </p>
 
-                        <!-- Footer -->
-                        <div class="flex items-center justify-between mt-2">
-
-                          <!-- Air date -->
-                          <p class="text-xs text-gray-400">
-                            {ep.air_date ?? "Unknown date"}
-                          </p>
-
-                          <!-- Play button (future use) -->
-                          <button
-                            class="opacity-0 group-hover:opacity-100 transition text-sm bg-blue-500 hover:bg-blue-600 px-3 py-1 rounded"
-                          >
-                            ▶ Play
-                          </button>
-
-                        </div>
+                        <!-- Future Play Button -->
+                        <!--
+                        <button
+                          class="opacity-0 group-hover:opacity-100 transition text-sm bg-blue-500 hover:bg-blue-600 px-3 py-1 rounded"
+                        >
+                          ▶ Play
+                        </button>
+                        -->
 
                       </div>
 
                     </div>
-                  {/each}
 
-                </div>
+                  </div>
+                {/each}
 
               </div>
-            {/each}
+
+            </div>
 
           {:else}
             <div class="bg-gray-800 p-6 rounded-lg text-center text-gray-400">
@@ -297,12 +318,6 @@ onMount(() => {
         </div>
       {/if}
 
-      <!-- {#if activeTab === "Episodes"}
-        <div class="bg-gray-800 p-6 md:p-8 rounded-lg shadow-lg animate-fadeIn">
-          <h2 class="text-xl font-semibold mb-2">Episodes</h2>
-          <p class="text-gray-400">Episodes will be listed here soon 🚧</p>
-        </div>
-      {/if} -->
 
       {#if activeTab === "Screenshots"}
         <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
