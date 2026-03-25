@@ -43,10 +43,10 @@
 
     try {
       const [moviesRes, showsRes, animeRes, gamesRes] = await Promise.all([
-        fetch(`http://192.168.0.100:5001/tmdb/search/movie?query=${encodeURIComponent(q)}`, { signal }),
-        fetch(`http://192.168.0.100:5001/tmdb/search/tv?query=${encodeURIComponent(q)}`, { signal }),
-        fetch(`http://192.168.0.100:5001/tmdb/search/anime?query=${encodeURIComponent(q)}`, { signal }),
-        fetch(`http://192.168.0.100:5001/igdb/search/game?query=${encodeURIComponent(q)}`, { signal })
+        fetch(`https://ntbck.fabioserver.xyz/tmdb/search/movie?query=${encodeURIComponent(q)}`, { signal }),
+        fetch(`https://ntbck.fabioserver.xyz/tmdb/search/tv?query=${encodeURIComponent(q)}`, { signal }),
+        fetch(`https://ntbck.fabioserver.xyz/tmdb/search/anime?query=${encodeURIComponent(q)}`, { signal }),
+        fetch(`https://ntbck.fabioserver.xyz/igdb/search/game?query=${encodeURIComponent(q)}`, { signal })
       ]);
 
       const movies = await moviesRes.json();
@@ -83,7 +83,7 @@
 
   async function fetchItems(endpoint: string) {
     try {
-      const res = await fetch(`http://192.168.0.100:5001/${endpoint}/`);
+      const res = await fetch(`https://ntbck.fabioserver.xyz/${endpoint}/`);
       if (res.ok) items = await res.json();
     } catch (err) {
       console.error("Failed to fetch items:", err);
@@ -108,9 +108,9 @@
     try {
       let res;
       if (item.type === "Game") {
-        res = await fetch(`http://192.168.0.100:5001/${endpoint}/?igdb_id=${item.id}`, { method: "POST" });
+        res = await fetch(`https://ntbck.fabioserver.xyz/${endpoint}/?igdb_id=${item.id}`, { method: "POST" });
       } else {
-        res = await fetch(`http://192.168.0.100:5001/${endpoint}/?tmdb_id=${item.id}`, { method: "POST" });
+        res = await fetch(`https://ntbck.fabioserver.xyz/${endpoint}/?tmdb_id=${item.id}`, { method: "POST" });
       }
 
       if (!res.ok) {
