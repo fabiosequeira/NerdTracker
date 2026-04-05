@@ -66,10 +66,14 @@ async def add_comic(comicvine_id: int):
     }
 
     async with httpx.AsyncClient() as client:
-        resp = await client.get(url, params=params)
+        headers = {
+            "User-Agent": "FabioMediaApp/1.0 (fabio10cfy@gmail.com)"
+        }
+        resp = await client.get(url, params=params, headers=headers)
         if resp.status_code != 200:
             raise HTTPException(status_code=resp.status_code, detail="ComicVine request failed")
         details = resp.json()
+
 
     if details.get("status_code") != 1:
         raise HTTPException(status_code=400, detail="ComicVine API error: " + details.get("error", "Unknown error"))
