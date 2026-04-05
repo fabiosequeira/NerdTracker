@@ -29,6 +29,13 @@ def extract_summary(html: str):
     # decode HTML entities
     return unescape(text).strip()
 
+def parse_year(value):
+    if not value:
+        return None
+    
+    match = re.search(r"\d{4}", value)
+    return int(match.group()) if match else None
+
 
 @router.get("/search")
 async def search_comics(query: str):
@@ -57,14 +64,13 @@ async def search_comics(query: str):
         results.append({
             "id": item.get("id"),
             "title": item.get("name"),
-            "year": int(item["start_year"]) if item.get("start_year") else None,
+            "year": parse_year(item.get("start_year") or ""),
             "poster": item.get("image", {}).get("original_url"),
             "count_of_issues": item.get("count_of_issues"),
             "publisher": item.get("publisher", {}).get("name"),
         })
 
     return results
-
 
 
 
@@ -103,7 +109,7 @@ async def add_comic(comicvine_id: int):
     payload = {
         "comicvine_id": comicvine_id,
         "title": result.get("name"),
-        "year": int(result["start_year"]) if result.get("start_year") else None,
+        "year": parse_year(result.get("start_year") or ""),
         "publisher": result.get("publisher", {}).get("name"),
         "poster": result.get("image", {}).get("original_url"),
         "count_of_issues": result.get("count_of_issues"),
