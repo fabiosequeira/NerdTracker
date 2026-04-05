@@ -4,7 +4,7 @@
   import { tick } from "svelte";
 
   let comic: any = null;
-  let activeTab: "Details" | "Issues" | "Links" = "Details";
+  let activeTab: "Details" | "Issues" = "Details";
 
   let tabRefs: (HTMLButtonElement | null)[] = [];
   let underlineStyle = "";
@@ -114,7 +114,7 @@
 
 <!-- Tabs -->
     <div class="bg-gray-900 flex gap-4 mb-6 border-b border-gray-700 relative py-2">
-      {#each (["Details", "Issues", "Links"] as ("Details" | "Issues" | "Links")[]) as tab, i}
+      {#each (["Details", "Issues"] as ("Details" | "Issues")[]) as tab, i}
         <button
           bind:this={tabRefs[i]}
           class="px-4 py-2 font-semibold rounded-md text-gray-200 hover:text-white transition-colors duration-200"
@@ -159,7 +159,7 @@
     <div class="bg-gray-800 p-6 rounded-lg text-gray-300 animate-fadeIn">
       <p>This comic has <strong>{comic.count_of_issues ?? 0}</strong> issues.</p>
       <p class="text-sm text-gray-400 mt-2">
-        (You can expand this later by fetching issues from ComicVine 👀)
+        (Coming soon.)
       </p>
     </div>
     {/if}

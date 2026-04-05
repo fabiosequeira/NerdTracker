@@ -3,7 +3,7 @@
   import { onMount } from "svelte";
 
   let movies: any[] = [], shows: any[] = [], anime: any[] = [], games: any[] = [], comics: any[] = [];
-  let activeTab: "Movies" | "Shows" | "Anime" | "Game" | "Comics" = "Movies";
+  let activeTab: "Movies" | "Shows" | "Anime" | "Games" | "Comics" = "Movies";
   const apiBase = 'https://ntbck.fabioserver.xyz'; // PRODUCTION
   //   const apiBase = 'http://127.0.0.1:8000'; - LOCAL
   
@@ -227,7 +227,7 @@ function sortItems(items: any[]) {
     {/each}
   {/if}
 
-  {#if activeTab === "Game"}
+  {#if activeTab === "Games"}
     {#each sortItems(games) as item}
       <div class="relative bg-gray-800 rounded-xl overflow-hidden shadow-lg hover:shadow-2xl hover:scale-105 transform transition duration-300 cursor-pointer group">
         <a href={`/games/${item._id}`}>
