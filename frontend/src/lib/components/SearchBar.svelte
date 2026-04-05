@@ -46,19 +46,22 @@
         fetch(`https://ntbck.fabioserver.xyz/tmdb/search/movie?query=${encodeURIComponent(q)}`, { signal }),
         fetch(`https://ntbck.fabioserver.xyz/tmdb/search/tv?query=${encodeURIComponent(q)}`, { signal }),
         fetch(`https://ntbck.fabioserver.xyz/tmdb/search/anime?query=${encodeURIComponent(q)}`, { signal }),
-        fetch(`https://ntbck.fabioserver.xyz/igdb/search/game?query=${encodeURIComponent(q)}`, { signal })
+        fetch(`https://ntbck.fabioserver.xyz/igdb/search/game?query=${encodeURIComponent(q)}`, { signal }),
+        fetch(`https://ntbck.fabioserver.xyz/comics/search?query=${encodeURIComponent(q)}`, { signal }),
       ]);
 
       const movies = await moviesRes.json();
       const shows = await showsRes.json();
       const animes = await animeRes.json();
       const games = await gamesRes.json();
+      const comics = await comicsRes.json();
 
       const merged = [
         ...movies.map((m: any) => ({ ...m, type: "Movie" })),
         ...shows.map((s: any) => ({ ...s, type: "Show" })),
         ...animes.map((a: any) => ({ ...a, type: "Anime" })),
-        ...games.map((g: any) => ({ ...g, type: "Game" }))
+        ...games.map((g: any) => ({ ...g, type: "Game" })),
+        ...comics.map((c: any) => ({ ...c, type: "Comic" })),
       ].sort((a, b) => (b.popularity ?? 0) - (a.popularity ?? 0));
 
       results = merged;
@@ -96,6 +99,7 @@
     if (item.type === "Show") endpoint = "shows";
     if (item.type === "Anime") endpoint = "animes";
     if (item.type === "Game") endpoint = "games";
+    if (item.type === "Comic") endpoint = "comics";
 
     if (!endpoint) return;
 
@@ -125,7 +129,8 @@
         fetchItems("movies"),
         fetchItems("shows"),
         fetchItems("animes"),
-        fetchItems("games")
+        fetchItems("games"),
+        fetchItems("comics")
       ]);
 
       alert(`${item.type} "${item.title}" added ✅`);
@@ -169,7 +174,7 @@
     bind:value={query}
     on:input={searchAll}
     on:keydown={handleKeydown}
-    placeholder="Search for a movie, show, anime or game..."
+    placeholder="Search for a movie, show, anime, game or comic..."
     class="w-full border border-gray-700 rounded-lg p-2 bg-gray-800 text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-400"
   />
 

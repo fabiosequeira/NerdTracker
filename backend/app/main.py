@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 import asyncio
-from app.routes import movies, shows, animes, games, tmdb, igdb, jellyfin_webhook
+from app.routes import movies, shows, animes, games, comics, tmdb, igdb, jellyfin_webhook
 from app.db import init_db
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.tasks import weekly_tmdb_sync
@@ -16,6 +16,7 @@ app.include_router(movies.router)
 app.include_router(shows.router)
 app.include_router(animes.router)
 app.include_router(games.router)
+app.include_router(comics.router)
 app.include_router(jellyfin_webhook.router)
 app.add_middleware(
     CORSMiddleware,

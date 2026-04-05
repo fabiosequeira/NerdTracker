@@ -2,8 +2,8 @@
   import SearchBar from "$lib/components/SearchBar.svelte";
   import { onMount } from "svelte";
 
-  let movies: any[] = [], shows: any[] = [], anime: any[] = [], games: any[] = [];
-  let activeTab: "Movies" | "Shows" | "Anime" | "Game" = "Movies";
+  let movies: any[] = [], shows: any[] = [], anime: any[] = [], games: any[] = [], comics: any[] = [];
+  let activeTab: "Movies" | "Shows" | "Anime" | "Game" | "Comics" = "Movies";
   const apiBase = 'https://ntbck.fabioserver.xyz'; // PRODUCTION
   //   const apiBase = 'http://127.0.0.1:8000'; - LOCAL
   
@@ -21,6 +21,7 @@
   fetchData("shows", d => shows = d);
   fetchData("animes", d => anime = d);
   fetchData("games", d => games = d);
+  fetchData("comics", d => comics = d);
 
   async function deleteItem(item: any, endpoint: string) {
     const id = item._id || item.id;
@@ -32,6 +33,7 @@
       if(endpoint==="shows") shows = shows.filter(i=>i._id!==id);
       if(endpoint==="animes") anime = anime.filter(i=>i._id!==id);
       if(endpoint==="games") games = games.filter(i=>i._id!==id);
+      if(endpoint==="comics") comics = comics.filter(i=>i._id!==id);
     } else alert("Delete failed ❌");
   }
 
@@ -111,12 +113,13 @@ function sortItems(items: any[]) {
     if(type=='Show') fetchData("shows", d=>shows=d);
     if(type=='Anime') fetchData("animes", d=>anime=d);
     if(type=='Game') fetchData("games", d=>games=d);
+    if(type=='Comic') fetchData("comics", d=>comics=d);
   }}/>
 </header>
 
   <!-- Tabs with animated underline -->
   <div class="relative z-10 flex justify-center gap-6 mb-8 border-b border-gray-700">
-    {#each ["Movies","Shows","Anime","Game"] as tab}
+    {#each ["Movies","Shows","Anime","Game","Comics"] as tab}
       <button
         class="py-2 px-4 font-semibold text-gray-300 hover:text-white transition-colors relative"
         class:selected={activeTab===tab}
@@ -245,6 +248,25 @@ function sortItems(items: any[]) {
         <button
           class="absolute top-2 right-2 bg-red-500 text-white px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition"
           on:click={() => deleteItem(item, "games")}
+        >Delete</button>
+      </div>
+    {/each}
+  {/if}
+
+  {#if activeTab === "Comics"}
+    {#each sortItems(comics) as item}
+      <div class="relative bg-gray-800 rounded-xl overflow-hidden shadow-lg hover:shadow-2xl hover:scale-105 transform transition duration-300 cursor-pointer group">
+        <a href={`/comics/${item._id}`}>
+          <img src={item.image} alt={item.title} class="w-full aspect-[2/3] object-cover"/>
+        </a>
+        <div class="p-4 space-y-1">
+          <a href={`/comics/${item._id}`} class="font-bold text-lg group-hover:text-blue-400">{item.title}</a>
+          {#if item.year}<p class="text-sm text-gray-400">📆 {item.year}</p>{/if}
+          {#if item.publisher}<p class="text-sm text-gray-400">🏢 {item.publisher}</p>{/if}
+        </div>
+        <button
+          class="absolute top-2 right-2 bg-red-500 text-white px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition"
+          on:click={() => deleteItem(item, "comics")}
         >Delete</button>
       </div>
     {/each}
