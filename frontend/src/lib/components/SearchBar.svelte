@@ -147,7 +147,7 @@
       console.error("Add failed:", err);
       alert("Failed to add item ❌");
     }
-
+  }
 
   function handleKeydown(e: KeyboardEvent) {
     if (!results.length) return;
