@@ -21,9 +21,10 @@ async def search_comics(query: str):
         "resources": "volume",
         "limit": 10,
     }
+    headers = {"User-Agent": "FabioMediaApp/1.0 (fabio10cfy@gmail.com)"}
 
     async with httpx.AsyncClient() as client:
-        resp = await client.get(url, params=params)
+        resp = await client.get(url, params=params, headers=headers)
         if resp.status_code != 200:
             raise HTTPException(status_code=resp.status_code, detail="ComicVine request failed")
 
@@ -35,13 +36,14 @@ async def search_comics(query: str):
     results = []
     for item in data.get("results", []):
         results.append({
-            "id": item.get("id"),  # IMPORTANT → used later for add
+            "id": item.get("id"),
             "title": item.get("name"),
             "year": int(item["start_year"]) if item.get("start_year") else None,
             "poster": item.get("image", {}).get("original_url"),
         })
 
     return results
+
 
 
 
