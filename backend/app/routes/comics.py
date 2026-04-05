@@ -40,6 +40,8 @@ async def search_comics(query: str):
             "title": item.get("name"),
             "year": int(item["start_year"]) if item.get("start_year") else None,
             "poster": item.get("image", {}).get("original_url"),
+            "count_of_issues": item.get("count_of_issues"),
+            "publisher": item.get("publisher", {}).get("name"),
         })
 
     return results
