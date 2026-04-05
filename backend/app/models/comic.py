@@ -8,7 +8,7 @@ class Comic(Document):
     publisher: Optional[str] = None
     poster: Optional[str] = "https://upload.wikimedia.org/wikipedia/commons/6/65/No-Image-Placeholder.svg"
     count_of_issues: Optional[int] = None
-    deck: Optional[str] = None
+    summary: Optional[str] = None
     site_detail_url: Optional[str] = None
     api_detail_url: Optional[str] = None
     

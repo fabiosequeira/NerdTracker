@@ -1,6 +1,8 @@
 from fastapi import APIRouter, HTTPException
 from beanie import PydanticObjectId
 from app.models.comic import Comic
+import re
+from html import unescape
 import httpx
 import os
 from dotenv import load_dotenv
@@ -10,6 +12,23 @@ router = APIRouter(prefix="/comics", tags=["comics"])
 COMICVINE_API_KEY = os.getenv("COMICVINE_API_KEY")
 if not COMICVINE_API_KEY:
     raise ValueError("COMICVINE_API_KEY is not set in environment")
+
+
+def extract_summary(html: str):
+    if not html:
+        return None
+
+    # grab ONLY the first <p>...</p>
+    match = re.search(r'<p>(.*?)</p>', html, re.DOTALL)
+    if not match:
+        return None
+
+    # remove any remaining tags inside the paragraph
+    text = re.sub(r'<[^>]+>', '', match.group(1))
+
+    # decode HTML entities
+    return unescape(text).strip()
+
 
 @router.get("/search")
 async def search_comics(query: str):
@@ -88,7 +107,7 @@ async def add_comic(comicvine_id: int):
         "publisher": result.get("publisher", {}).get("name"),
         "poster": result.get("image", {}).get("original_url"),
         "count_of_issues": result.get("count_of_issues"),
-        "deck": result.get("deck"),
+        "summary": result.get("deck") or extract_summary(result.get("description")) or "No description available",
         "site_detail_url": result.get("site_detail_url"),
         "api_detail_url": result.get("api_detail_url"),
 

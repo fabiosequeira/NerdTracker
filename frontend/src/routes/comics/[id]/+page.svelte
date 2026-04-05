@@ -142,7 +142,7 @@
         <span class="text-gray-400 text-lg md:text-xl">({comic.year ?? "-"})</span>
       </h1>
 
-      <p class="text-gray-300">{comic.deck ?? "-"}</p>
+      <p class="text-gray-300">{comic.summary ?? "-"}</p>
 
       <div class="grid grid-cols-2 sm:grid-cols-3 gap-4 mt-4">
         <p><strong>Publisher:</strong> {comic.publisher ?? "-"}</p>
