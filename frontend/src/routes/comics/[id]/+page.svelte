@@ -148,6 +148,9 @@
         <p><strong>Publisher:</strong> {comic.publisher ?? "-"}</p>
         <p><strong>Issues:</strong> {comic.count_of_issues ?? "-"}</p>
         <p><strong>ComicVine ID:</strong> {comic.comicvine_id ?? "-"}</p>
+        <p><a href={comic.site_detail_url} target="_blank" class="text-blue-400 hover:underline">
+          View on ComicVine
+        </a></p>
       </div>
     </div>
     {/if}
@@ -158,22 +161,6 @@
       <p class="text-sm text-gray-400 mt-2">
         (You can expand this later by fetching issues from ComicVine 👀)
       </p>
-    </div>
-    {/if}
-
-    {#if activeTab === "Links"}
-    <div class="bg-gray-800 p-6 rounded-lg space-y-4 animate-fadeIn">
-      {#if comic.site_detail_url}
-        <a href={comic.site_detail_url} target="_blank" class="text-blue-400 hover:underline">
-          View on ComicVine
-        </a>
-      {/if}
-
-      {#if comic.api_detail_url}
-        <a href={comic.api_detail_url} target="_blank" class="text-blue-400 hover:underline">
-          API Details
-        </a>
-      {/if}
     </div>
     {/if}
 

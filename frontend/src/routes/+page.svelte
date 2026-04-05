@@ -257,7 +257,7 @@ function sortItems(items: any[]) {
     {#each sortItems(comics) as item}
       <div class="relative bg-gray-800 rounded-xl overflow-hidden shadow-lg hover:shadow-2xl hover:scale-105 transform transition duration-300 cursor-pointer group">
         <a href={`/comics/${item._id}`}>
-          <img src={item.image} alt={item.title} class="w-full aspect-[2/3] object-cover"/>
+          <img src={item.poster} alt={item.title} class="w-full aspect-[2/3] object-cover"/>
         </a>
         <div class="p-4 space-y-1">
           <a href={`/comics/${item._id}`} class="font-bold text-lg group-hover:text-blue-400">{item.title}</a>
