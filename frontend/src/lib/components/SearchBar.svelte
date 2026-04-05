@@ -187,27 +187,37 @@
   {/if}
 
   {#if results.length > 0}
-    <ul class="absolute bg-gray-800 border border-gray-700 w-full mt-1 rounded-lg shadow-lg z-50 max-h-96 overflow-y-auto">
-      {#each results as item, i}
-        <li>
-          <button
-            type="button"
-            class="flex items-center gap-3 w-full text-left p-2 cursor-pointer rounded
-              {i === highlightedIndex ? 'bg-gray-700' : ''} hover:bg-gray-700"
-            on:click={() => addItem(item)}
-          >
-            {#if item.poster}
-              <img src={item.poster} alt={item.title} class="w-10 h-14 object-cover rounded" />
+  <ul class="absolute bg-gray-800 border border-gray-700 w-full mt-1 rounded-lg shadow-lg z-50 max-h-96 overflow-y-auto">
+    {#each results as item, i}
+      <li>
+        <button
+          type="button"
+          class="flex items-center gap-3 w-full text-left p-2 cursor-pointer rounded
+            {i === highlightedIndex ? 'bg-gray-700' : ''} hover:bg-gray-700"
+          on:click={() => addItem(item)}
+        >
+          {#if item.poster}
+            <img src={item.poster} alt={item.title} class="w-10 h-14 object-cover rounded" />
+          {/if}
+
+          <div>
+            <span class="font-medium text-gray-100">{item.title}</span>
+
+            <span class="text-sm text-gray-400">
+              {item.year ? `(${item.year})` : ""} • {item.type}
+            </span>
+
+            {#if item.type === 'comic'}
+              <div class="text-xs text-gray-400">
+                {item.count_of_issues ? `${item.count_of_issues} issues` : ""}
+                {item.publisher ? ` • ${item.publisher}` : ""}
+              </div>
             {/if}
-            <div>
-              <span class="font-medium text-gray-100">{item.title}</span>
-              <span class="text-sm text-gray-400">
-                {item.year ? `(${item.year})` : ""} • {item.type}
-              </span>
-            </div>
-          </button>
-        </li>
-      {/each}
-    </ul>
-  {/if}
+          </div>
+        </button>
+      </li>
+    {/each}
+  </ul>
+{/if}
+
 </div>
