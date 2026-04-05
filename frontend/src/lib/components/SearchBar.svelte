@@ -207,7 +207,7 @@
               {item.year ? `(${item.year})` : ""} • {item.type}
             </span>
 
-            {#if item.type === 'comic'}
+            {#if item.type === 'Comic'}
               <div class="text-xs text-gray-400">
                 {item.count_of_issues ? `${item.count_of_issues} issues` : ""}
                 {item.publisher ? ` • ${item.publisher}` : ""}
