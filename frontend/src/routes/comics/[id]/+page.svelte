@@ -99,9 +99,9 @@
   </a>
 
   <!-- Cover -->
-  {#if comic.image}
+  {#if comic.poster}
     <img
-      src={comic.image}
+      src={comic.poster}
       alt={comic.title}
       class="absolute left-6 bottom-[-4rem] md:bottom-[-6rem] w-44 md:w-56 rounded-lg shadow-2xl border-4 border-gray-900 z-20"
     />

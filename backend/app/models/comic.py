@@ -6,7 +6,7 @@ class Comic(Document):
     title: str
     year: Optional[int] = None
     publisher: Optional[str] = None
-    image: Optional[str] = "https://upload.wikimedia.org/wikipedia/commons/6/65/No-Image-Placeholder.svg"
+    poster: Optional[str] = "https://upload.wikimedia.org/wikipedia/commons/6/65/No-Image-Placeholder.svg"
     count_of_issues: Optional[int] = None
     deck: Optional[str] = None
     site_detail_url: Optional[str] = None

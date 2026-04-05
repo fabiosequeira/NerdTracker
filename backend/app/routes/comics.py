@@ -11,6 +11,40 @@ COMICVINE_API_KEY = os.getenv("COMICVINE_API_KEY")
 if not COMICVINE_API_KEY:
     raise ValueError("COMICVINE_API_KEY is not set in environment")
 
+@router.get("/search")
+async def search_comics(query: str):
+    url = "https://comicvine.gamespot.com/api/search/"
+    params = {
+        "api_key": COMICVINE_API_KEY,
+        "format": "json",
+        "query": query,
+        "resources": "volume",
+        "limit": 10,
+    }
+
+    async with httpx.AsyncClient() as client:
+        resp = await client.get(url, params=params)
+        if resp.status_code != 200:
+            raise HTTPException(status_code=resp.status_code, detail="ComicVine request failed")
+
+        data = resp.json()
+
+    if data.get("status_code") != 1:
+        raise HTTPException(status_code=400, detail=data.get("error", "Unknown error"))
+
+    results = []
+    for item in data.get("results", []):
+        results.append({
+            "id": item.get("id"),  # IMPORTANT → used later for add
+            "title": item.get("name"),
+            "year": int(item["start_year"]) if item.get("start_year") else None,
+            "poster": item.get("image", {}).get("original_url"),
+        })
+
+    return results
+
+
+
 @router.get("/", response_model=list[Comic])
 async def list_comics():
     return await Comic.find_all().to_list()
@@ -44,7 +78,7 @@ async def add_comic(comicvine_id: int):
         "title": result.get("name"),
         "year": int(result["start_year"]) if result.get("start_year") else None,
         "publisher": result.get("publisher", {}).get("name"),
-        "image": result.get("image", {}).get("original_url"),
+        "poster": result.get("image", {}).get("original_url"),
         "count_of_issues": result.get("count_of_issues"),
         "deck": result.get("deck"),
         "site_detail_url": result.get("site_detail_url"),

@@ -42,7 +42,7 @@
     const { signal } = currentController;
 
     try {
-      const [moviesRes, showsRes, animeRes, gamesRes] = await Promise.all([
+      const [moviesRes, showsRes, animeRes, gamesRes, comicsRes] = await Promise.all([
         fetch(`https://ntbck.fabioserver.xyz/tmdb/search/movie?query=${encodeURIComponent(q)}`, { signal }),
         fetch(`https://ntbck.fabioserver.xyz/tmdb/search/tv?query=${encodeURIComponent(q)}`, { signal }),
         fetch(`https://ntbck.fabioserver.xyz/tmdb/search/anime?query=${encodeURIComponent(q)}`, { signal }),
@@ -111,9 +111,13 @@
 
     try {
       let res;
+
       if (item.type === "Game") {
         res = await fetch(`https://ntbck.fabioserver.xyz/${endpoint}/?igdb_id=${item.id}`, { method: "POST" });
+      } else if (item.type === "Comic") {
+        res = await fetch(`https://ntbck.fabioserver.xyz/comics/?comicvine_id=${item.id}`, { method: "POST" });
       } else {
+        // Movies, Shows, Anime
         res = await fetch(`https://ntbck.fabioserver.xyz/${endpoint}/?tmdb_id=${item.id}`, { method: "POST" });
       }
 
@@ -143,7 +147,7 @@
       console.error("Add failed:", err);
       alert("Failed to add item ❌");
     }
-  }
+
 
   function handleKeydown(e: KeyboardEvent) {
     if (!results.length) return;
