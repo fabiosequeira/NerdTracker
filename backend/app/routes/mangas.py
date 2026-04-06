@@ -8,7 +8,7 @@ import os
 from dotenv import load_dotenv
 load_dotenv()
 
-router = APIRouter(prefix="/manga", tags=["manga"])
+router = APIRouter(prefix="/mangas", tags=["manga"])
 client = httpx.AsyncClient()
 
 def clean_description(html: str):
