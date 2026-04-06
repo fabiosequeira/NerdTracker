@@ -25,43 +25,41 @@ async def search_manga(query: str):
     url = "https://graphql.anilist.co/"
     graphql_query = {
         "query": """
-    query ($search: String) {
-      Page(perPage: 10) {
-        media(search: $search, type: MANGA) {
-          id
-          title {
-            romaji
-            english
-          }
-          startDate {
-            year
-          }
-          coverImage {
-            extraLarge
+        query ($search: String) {
+          Page(perPage: 10) {
+            media(search: $search, type: MANGA) {
+              id
+              title {
+                romaji
+                english
+              }
+              startDate {
+                year
+              }
+              coverImage {
+                extraLarge
+              }
+            }
           }
         }
-      }
-    }
-    """
-        
+        """
     }
     variables = {"search": query}
 
-    resp = await client.post(url, json={
-            "query": graphql_query,
-            "variables": variables
-        })
+    try:
+        async with httpx.AsyncClient() as client:
+            resp = await client.post(url, json={"query": graphql_query, "variables": variables})
+            resp.raise_for_status()  # raise exception for 4xx/5xx
+            data = resp.json()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"AniList request failed: {e}")
 
-    if resp.status_code != 200:
-            raise HTTPException(status_code=resp.status_code, detail="AniList request failed")
-
-    data = resp.json()
-
+    media_list = data.get("data", {}).get("Page", {}).get("media", [])
     results = []
-    for item in data["data"]["Page"]["media"]:
+    for item in media_list:
         results.append({
             "id": item["id"],
-            "title": item["title"]["english"] or item["title"]["romaji"],
+            "title": item["title"].get("english") or item["title"].get("romaji") or "Unknown",
             "year": item.get("startDate", {}).get("year"),
             "poster": item.get("coverImage", {}).get("extraLarge"),
         })
