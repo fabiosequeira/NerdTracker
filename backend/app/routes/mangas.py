@@ -23,36 +23,38 @@ def clean_description(html: str):
 @router.get("/search")
 async def search_manga(query: str):
     url = "https://graphql.anilist.co/"
-    graphql_query = {
-        "query": """
-        query ($search: String) {
-          Page(perPage: 10) {
-            media(search: $search, type: MANGA) {
-              id
-              title {
-                romaji
-                english
-              }
-              startDate {
-                year
-              }
-              coverImage {
-                extraLarge
-              }
-            }
+    graphql_query = """
+    query ($search: String) {
+      Page(perPage: 10) {
+        media(search: $search, type: MANGA) {
+          id
+          title {
+            romaji
+            english
+          }
+          startDate {
+            year
+          }
+          coverImage {
+            extraLarge
           }
         }
-        """
+      }
     }
+    """
     variables = {"search": query}
 
     try:
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=10) as client:
             resp = await client.post(url, json={"query": graphql_query, "variables": variables})
-            resp.raise_for_status()  # raise exception for 4xx/5xx
+            resp.raise_for_status()
             data = resp.json()
+    except httpx.HTTPStatusError as e:
+        print(f"AniList error: {e.response.status_code} {e.response.text}")
+        return []
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"AniList request failed: {e}")
+        print(f"AniList request failed: {e}")
+        return []
 
     media_list = data.get("data", {}).get("Page", {}).get("media", [])
     results = []
@@ -65,6 +67,8 @@ async def search_manga(query: str):
         })
 
     return results
+
+
 
 
 
