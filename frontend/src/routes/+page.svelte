@@ -37,7 +37,7 @@
       if(endpoint==="animes") anime = anime.filter(i=>i._id!==id);
       if(endpoint==="games") games = games.filter(i=>i._id!==id);
       if(endpoint==="comics") comics = comics.filter(i=>i._id!==id);
-      if(endpoint==="mangas") mangas = mangas.filter(i=>i._id!==id);
+      if(endpoint==="manga") mangas = mangas.filter(i=>i._id!==id);
     } else alert("Delete failed ❌");
   }
 
@@ -281,11 +281,11 @@ function sortItems(items: any[]) {
   {#if activeTab === "Mangas"}
     {#each sortItems(mangas) as item}
       <div class="relative bg-gray-800 rounded-xl overflow-hidden shadow-lg hover:shadow-2xl hover:scale-105 transform transition duration-300 cursor-pointer group">
-        <a href={`/mangas/${item._id}`}>
+        <a href={`/manga/${item._id}`}>
           <img src={item.poster} alt={item.title} class="w-full aspect-[2/3] object-cover"/>
         </a>
         <div class="p-4 space-y-1">
-          <a href={`/mangas/${item._id}`} class="font-bold text-lg group-hover:text-blue-400">{item.title}</a>
+          <a href={`/manga/${item._id}`} class="font-bold text-lg group-hover:text-blue-400">{item.title}</a>
           {#if item.year}<p class="text-sm text-gray-400">📆 {item.year}</p>{/if}
           {#if item.average_score}<p class="text-sm text-gray-400">⭐ {item.average_score}</p>{/if}
           {#if item.genres?.length}
@@ -298,7 +298,7 @@ function sortItems(items: any[]) {
         </div>
         <button
           class="absolute top-2 right-2 bg-red-500 text-white px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition"
-          on:click={() => deleteItem(item, "mangas")}
+          on:click={() => deleteItem(item, "manga")}
         >Delete</button>
       </div>
     {/each}
