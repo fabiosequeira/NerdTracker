@@ -98,7 +98,11 @@
     </svg>
   </a>
 
-  <!-- Cover -->
+  <!-- Banner -->
+    {#if manga.banner_image}
+      <img src={manga.banner_image} alt={manga.title} class="absolute w-full h-full object-cover opacity-30" />
+    {/if}
+  <!-- Poster -->
   {#if manga.poster}
     <img
       src={manga.poster}
@@ -157,23 +161,24 @@
     {/if}
 
     {#if activeTab === "Trailer"}
-  <div class="grid grid-cols-1 sm:grid-cols-2 gap-8">
-    {#if manga.trailer_id}
-      <div class="aspect-video rounded-lg overflow-hidden shadow-lg transform transition-transform duration-300 hover:scale-105 hover:shadow-xl">
-        <iframe
-          width="100%"
-          height="100%"
-          src={`https://www.youtube.com/embed/${manga.trailer_id}`}
-          frameborder="0"
-          allowfullscreen
-          title={`Trailer for ${manga.title}`}
-        ></iframe>
+      <div class="flex justify-center items-start">
+        {#if manga.trailer_id}
+          <div class="aspect-video rounded-lg overflow-hidden shadow-lg transform transition-transform duration-300 hover:scale-105 hover:shadow-xl">
+            <iframe
+              width="100%"
+              height="100%"
+              src={`https://www.youtube.com/embed/${manga.trailer_id}`}
+              frameborder="0"
+              allowfullscreen
+              title={`Trailer for ${manga.title}`}
+            ></iframe>
+          </div>
+        {:else}
+          <p class="text-gray-400">No trailer available.</p>
+        {/if}
       </div>
-    {:else}
-      <p class="text-gray-400">No trailer available.</p>
     {/if}
-  </div>
-{/if}
+
 
 
   </div>
