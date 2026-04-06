@@ -22,7 +22,9 @@
   fetchData("animes", d => anime = d);
   fetchData("games", d => games = d);
   fetchData("comics", d => comics = d);
-  fetchData("mangas", d => mangas = d);
+  fetchData("manga", d => mangas = d);
+
+
 
   async function deleteItem(item: any, endpoint: string) {
     const id = item._id || item.id;
@@ -35,7 +37,6 @@
       if(endpoint==="animes") anime = anime.filter(i=>i._id!==id);
       if(endpoint==="games") games = games.filter(i=>i._id!==id);
       if(endpoint==="comics") comics = comics.filter(i=>i._id!==id);
-      if(endpoint==="manga") mangas = mangas.filter(i=>i._id!==id);
     } else alert("Delete failed ❌");
   }
 
@@ -116,7 +117,6 @@ function sortItems(items: any[]) {
     if(type=='Anime') fetchData("animes", d=>anime=d);
     if(type=='Game') fetchData("games", d=>games=d);
     if(type=='Comic') fetchData("comics", d=>comics=d);
-    if(type=='Manga') fetchData("manga", d=>mangas=d);
   }}/>
 </header>
 
