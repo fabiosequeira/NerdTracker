@@ -12,11 +12,11 @@
   const apiBase = 'https://ntbck.fabioserver.xyz'; // PRODUCTION
   //   const apiBase = 'http://127.0.0.1:8000'; - LOCAL
   
-  $: mangaId = $page.params.id;
+  $: manga_Id = $page.params.id;
 
   async function fetchManga() {
     try {
-      const res = await fetch(`${apiBase}/manga/${mangaId}`);
+      const res = await fetch(`${apiBase}/manga/${manga_Id}`);
       if (!res.ok) throw new Error("Failed to fetch manga");
       manga = await res.json();
       await tick();
