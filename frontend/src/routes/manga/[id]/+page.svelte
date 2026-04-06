@@ -163,9 +163,9 @@
     {/if}
 
     {#if activeTab === "Trailer"}
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-8 justify-items-center">
+      <div class="grid grid-cols-1 justify-items-center gap-8">
         {#if manga.trailer_id}
-          <div class="aspect-video rounded-lg overflow-hidden shadow-lg transform transition-transform duration-300 hover:scale-105 hover:shadow-xl w-full sm:w-auto">
+          <div class="aspect-video rounded-lg overflow-hidden shadow-lg transform transition-transform duration-300 hover:scale-105 hover:shadow-xl w-full max-w-3xl">
             <iframe
               width="100%"
               height="100%"
