@@ -22,7 +22,7 @@
   fetchData("animes", d => anime = d);
   fetchData("games", d => games = d);
   fetchData("comics", d => comics = d);
-  fetchData("manga", d => mangas = d);
+  fetchData("mangas", d => mangas = d);
 
 
 
@@ -37,6 +37,7 @@
       if(endpoint==="animes") anime = anime.filter(i=>i._id!==id);
       if(endpoint==="games") games = games.filter(i=>i._id!==id);
       if(endpoint==="comics") comics = comics.filter(i=>i._id!==id);
+      if(endpoint==="mangas") mangas = mangas.filter(i=>i._id!==id);
     } else alert("Delete failed ❌");
   }
 
@@ -117,6 +118,7 @@ function sortItems(items: any[]) {
     if(type=='Anime') fetchData("animes", d=>anime=d);
     if(type=='Game') fetchData("games", d=>games=d);
     if(type=='Comic') fetchData("comics", d=>comics=d);
+    if(type=='Manga') fetchData("mangas", d=>mangas=d);
   }}/>
 </header>
 
@@ -296,7 +298,7 @@ function sortItems(items: any[]) {
         </div>
         <button
           class="absolute top-2 right-2 bg-red-500 text-white px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition"
-          on:click={() => deleteItem(item, "manga")}
+          on:click={() => deleteItem(item, "mangas")}
         >Delete</button>
       </div>
     {/each}

@@ -68,10 +68,6 @@ async def search_manga(query: str):
 
     return results
 
-
-
-
-
 @router.get("/", response_model=list[Manga])
 async def list_manga():
     return await Manga.find_all().to_list()
