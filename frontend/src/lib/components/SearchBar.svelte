@@ -48,7 +48,7 @@
         fetch(`https://ntbck.fabioserver.xyz/tmdb/search/anime?query=${encodeURIComponent(q)}`, { signal }),
         fetch(`https://ntbck.fabioserver.xyz/igdb/search/game?query=${encodeURIComponent(q)}`, { signal }),
         fetch(`https://ntbck.fabioserver.xyz/comics/search?query=${encodeURIComponent(q)}`, { signal }),
-        fetch(`https://ntbck.fabioserver.xyz/mangas/search?query=${encodeURIComponent(q)}`, { signal })
+        fetch(`https://ntbck.fabioserver.xyz/manga/search?query=${encodeURIComponent(q)}`, { signal })
       ]);
 
       const movies = await moviesRes.json();
@@ -56,7 +56,7 @@
       const animes = await animeRes.json();
       const games = await gamesRes.json();
       const comics = await comicsRes.json();
-      const mangas = await mangasRes.json();
+      const manga = await mangasRes.json();
 
       const merged = [
         ...movies.map((m: any) => ({ ...m, type: "Movie" })),
@@ -64,7 +64,7 @@
         ...animes.map((a: any) => ({ ...a, type: "Anime" })),
         ...games.map((g: any) => ({ ...g, type: "Game" })),
         ...comics.map((c: any) => ({ ...c, type: "Comic" })),
-        ...mangas.map((m: any) => ({ ...m, type: "Manga" }))
+        ...manga.map((m: any) => ({ ...m, type: "Manga" }))
       ].sort((a, b) => (b.popularity ?? 0) - (a.popularity ?? 0));
 
       results = merged;
@@ -103,7 +103,7 @@
     if (item.type === "Anime") endpoint = "animes";
     if (item.type === "Game") endpoint = "games";
     if (item.type === "Comic") endpoint = "comics";
-    if (item.type === "Manga") endpoint = "mangas";
+    if (item.type === "Manga") endpoint = "manga";
 
     if (!endpoint) return;
 
@@ -121,7 +121,7 @@
       } else if (item.type === "Comic") {
         res = await fetch(`https://ntbck.fabioserver.xyz/comics/?comicvine_id=${item.id}`, { method: "POST" });
       } else if (item.type === "Manga") {
-        res = await fetch(`https://ntbck.fabioserver.xyz/mangas/?anilist_id=${item.id}`, { method: "POST" });
+        res = await fetch(`https://ntbck.fabioserver.xyz/manga/?anilist_id=${item.id}`, { method: "POST" });
       } else {
         // Movies, Shows, Anime
         res = await fetch(`https://ntbck.fabioserver.xyz/${endpoint}/?tmdb_id=${item.id}`, { method: "POST" });
@@ -141,7 +141,7 @@
         fetchItems("animes"),
         fetchItems("games"),
         fetchItems("comics"),
-        fetchItems("mangas")
+        fetchItems("manga")
       ]);
 
       alert(`${item.type} "${item.title}" added ✅`);
