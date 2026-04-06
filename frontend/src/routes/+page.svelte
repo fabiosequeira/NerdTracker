@@ -279,11 +279,11 @@ function sortItems(items: any[]) {
   {#if activeTab === "Mangas"}
     {#each sortItems(mangas) as item}
       <div class="relative bg-gray-800 rounded-xl overflow-hidden shadow-lg hover:shadow-2xl hover:scale-105 transform transition duration-300 cursor-pointer group">
-        <a href={`/manga/${item._id}`}>
+        <a href={`/mangas/${item._id}`}>
           <img src={item.poster} alt={item.title} class="w-full aspect-[2/3] object-cover"/>
         </a>
         <div class="p-4 space-y-1">
-          <a href={`/manga/${item._id}`} class="font-bold text-lg group-hover:text-blue-400">{item.title}</a>
+          <a href={`/mangas/${item._id}`} class="font-bold text-lg group-hover:text-blue-400">{item.title}</a>
           {#if item.year}<p class="text-sm text-gray-400">📆 {item.year}</p>{/if}
           {#if item.average_score}<p class="text-sm text-gray-400">⭐ {item.average_score}</p>{/if}
           {#if item.genres?.length}
