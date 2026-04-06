@@ -90,7 +90,7 @@
 <main class="min-h-screen bg-gray-900 text-gray-100">
 
 <!-- Hero/Backdrop -->
-<div class="relative w-full h-64 md:h-80 lg:h-96 z-10">
+<div class="relative w-full" style="padding-top: 21%; z-index: 10;">
   <!-- Back Arrow -->
   <a href="/" aria-label="Go back to mangas list" class="absolute top-4 left-4 md:top-6 md:left-6 bg-black/50 rounded-full p-2 hover:bg-black/70 transition z-20">
     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
