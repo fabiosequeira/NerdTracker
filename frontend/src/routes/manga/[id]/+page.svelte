@@ -91,10 +91,10 @@
 
 <!-- Hero/Backdrop -->
   <div class="relative w-full h-64 md:h-80 lg:h-96 z-10">
-    {#if manga.backdrop}
+    {#if manga.banner_image}
       <div
         class="absolute inset-0 bg-cover bg-top before:content-[''] before:absolute before:inset-0 before:bg-gradient-to-t before:from-gray-900 before:via-transparent"
-        style="background-image: url('{manga.backdrop}')"
+        style="background-image: url('{manga.banner_image}')"
       ></div>
     {/if}
 
@@ -163,9 +163,9 @@
     {/if}
 
     {#if activeTab === "Trailer"}
-      <div class="flex justify-center items-start">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-8 justify-items-center">
         {#if manga.trailer_id}
-          <div class="aspect-video rounded-lg overflow-hidden shadow-lg transform transition-transform duration-300 hover:scale-105 hover:shadow-xl">
+          <div class="aspect-video rounded-lg overflow-hidden shadow-lg transform transition-transform duration-300 hover:scale-105 hover:shadow-xl w-full sm:w-auto">
             <iframe
               width="100%"
               height="100%"
