@@ -3,7 +3,7 @@
   import { page } from "$app/stores";
   import { tick } from "svelte";
 
-  let manga: any = null;
+  let mangas: any = null;
   let activeTab: "Details" | "Trailer" = "Details";
 
   let tabRefs: (HTMLButtonElement | null)[] = [];
@@ -16,9 +16,9 @@
 
   async function fetchManga() {
     try {
-      const res = await fetch(`${apiBase}/manga/${manga_Id}`);
+      const res = await fetch(`${apiBase}/mangas/${manga_Id}`);
       if (!res.ok) throw new Error("Failed to fetch manga");
-      manga = await res.json();
+      mangas = await res.json();
       await tick();
       updateUnderline();
     } catch (err) {
@@ -86,7 +86,7 @@
 <!-- Particle background -->
 <canvas id="particle-canvas" class="absolute inset-0 w-full h-full pointer-events-none"></canvas>
 
-{#if manga}
+{#if mangas}
 <main class="min-h-screen bg-gray-900 text-gray-100">
 
 <!-- Hero/Backdrop -->
@@ -99,10 +99,10 @@
   </a>
 
   <!-- Cover -->
-  {#if manga.poster}
+  {#if mangas.poster}
     <img
-      src={manga.poster}
-      alt={manga.title}
+      src={mangas.poster}
+      alt={mangas.title}
       class="absolute left-6 bottom-[-4rem] md:bottom-[-6rem] w-44 md:w-56 rounded-lg shadow-2xl border-4 border-gray-900 z-20"
     />
   {/if}
@@ -138,19 +138,19 @@
     {#if activeTab === "Details"}
     <div class="bg-gray-800 p-6 md:p-8 rounded-lg shadow-lg space-y-4 animate-fadeIn">
       <h1 class="text-2xl md:text-3xl font-bold">
-        {manga.title}
-        <span class="text-gray-400 text-lg md:text-xl">({manga.year ?? "-"})</span>
+        {mangas.title}
+        <span class="text-gray-400 text-lg md:text-xl">({mangas.year ?? "-"})</span>
       </h1>
 
-      <p class="text-gray-300">{manga.summary ?? "-"}</p>
+      <p class="text-gray-300">{mangas.summary ?? "-"}</p>
 
       <div class="grid grid-cols-2 sm:grid-cols-3 gap-4 mt-4">
-        <p><strong>AniList ID:</strong> {manga.anilist_id ?? "-"}</p>
-        <p><strong>Title Native:</strong> {manga.title_native ?? "-"}</p>
-        <p><strong>Title Romaji:</strong> {manga.title_romaji ?? "-"}</p>
-        <p><strong>Year of Release:</strong> {manga.year ?? "-"}</p>
-        <p><strong>Genres:</strong> {manga.genres?.join(", ") ?? "-"}</p>
-        <p><strong>Average Score:</strong> {manga.average_score ?? "-"}</p>
+        <p><strong>AniList ID:</strong> {mangas.anilist_id ?? "-"}</p>
+        <p><strong>Title Native:</strong> {mangas.title_native ?? "-"}</p>
+        <p><strong>Title Romaji:</strong> {mangas.title_romaji ?? "-"}</p>
+        <p><strong>Year of Release:</strong> {mangas.year ?? "-"}</p>
+        <p><strong>Genres:</strong> {mangas.genres?.join(", ") ?? "-"}</p>
+        <p><strong>Average Score:</strong> {mangas.average_score ?? "-"}</p>
 
       </div>
     </div>
@@ -158,15 +158,15 @@
 
     {#if activeTab === "Trailer"}
   <div class="grid grid-cols-1 sm:grid-cols-2 gap-8">
-    {#if manga.trailer_id}
+    {#if mangas.trailer_id}
       <div class="aspect-video rounded-lg overflow-hidden shadow-lg transform transition-transform duration-300 hover:scale-105 hover:shadow-xl">
         <iframe
           width="100%"
           height="100%"
-          src={`https://www.youtube.com/embed/${manga.trailer_id}`}
+          src={`https://www.youtube.com/embed/${mangas.trailer_id}`}
           frameborder="0"
           allowfullscreen
-          title={`Trailer for ${manga.title}`}
+          title={`Trailer for ${mangas.title}`}
         ></iframe>
       </div>
     {:else}
