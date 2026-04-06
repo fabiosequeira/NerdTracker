@@ -122,7 +122,7 @@ function sortItems(items: any[]) {
 
   <!-- Tabs with animated underline -->
   <div class="relative z-10 flex justify-center gap-6 mb-8 border-b border-gray-700">
-    {#each ["Movies","Shows","Anime","Game","Comics"] as tab}
+    {#each ["Movies","Shows","Anime","Game","Comics","Manga"] as tab}
       <button
         class="py-2 px-4 font-semibold text-gray-300 hover:text-white transition-colors relative"
         class:selected={activeTab===tab}
