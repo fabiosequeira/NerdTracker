@@ -1,30 +1,17 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { page } from "$app/stores";
   import { tick } from "svelte";
+  import ParticleBackground from "$lib/components/ParticleBackground.svelte";
+  import { tmdb, onImgError } from "$lib/img";
+  import YouTubeEmbed from "$lib/components/YouTubeEmbed.svelte";
 
+  export let data: any;
   let movie: any = null;
+  $: movie = data.item;
   let activeTab: "Details" | "Screenshots" | "Videos" = "Details";
 
   let tabRefs: (HTMLButtonElement | null)[] = [];
   let underlineStyle = "";
-
-  const apiBase = 'https://ntbck.fabioserver.xyz'; // PRODUCTION
-  //   const apiBase = 'http://127.0.0.1:8000'; - LOCAL
-  
-  $: movieId = $page.params.id;
-
-  async function fetchMovie() {
-    try {
-      const res = await fetch(`${apiBase}/movies/${movieId}`);
-      if (!res.ok) throw new Error("Failed to fetch movie");
-      movie = await res.json();
-      await tick();
-      updateUnderline();
-    } catch (err) {
-      console.error(err);
-    }
-  }
 
   function setActive(tab: typeof activeTab, index: number) {
     activeTab = tab;
@@ -67,50 +54,14 @@
   }
 
   onMount(() => {
-    fetchMovie();
+    tick().then(() => updateUnderline());
     window.addEventListener("keydown", handleKeydown);
-    const canvas = document.getElementById("particle-canvas") as HTMLCanvasElement;
-  if (canvas) {
-    const ctx = canvas.getContext("2d");
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-
-    const particles = Array.from({ length: 80 }, () => ({
-      x: Math.random() * canvas.width,
-      y: Math.random() * canvas.height,
-      r: Math.random() * 2 + 1,
-      dx: (Math.random() - 0.5) * 0.5,
-      dy: (Math.random() - 0.5) * 0.5,
-    }));
-
-    function draw() {
-      if (!ctx) return;
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.fillStyle = "rgba(255,255,255,0.3)";
-      particles.forEach((p) => {
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-        ctx.fill();
-        p.x += p.dx;
-        p.y += p.dy;
-        if (p.x < 0 || p.x > canvas.width) p.dx *= -1;
-        if (p.y < 0 || p.y > canvas.height) p.dy *= -1;
-      });
-      requestAnimationFrame(draw);
-    }
-    draw();
-
-    window.addEventListener("resize", () => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-    });
-  }
     return () => window.removeEventListener("keydown", handleKeydown);
   });
 </script>
 
 <!-- Particle background -->
-  <canvas id="particle-canvas" class="absolute inset-0 w-full h-full pointer-events-none"></canvas>
+  <ParticleBackground />
 
 {#if movie}
 <main class="min-h-screen bg-gray-900 text-gray-100">
@@ -120,7 +71,7 @@
   {#if movie.backdrop}
     <div
       class="absolute inset-0 bg-cover bg-top before:content-[''] before:absolute before:inset-0 before:bg-gradient-to-t before:from-gray-900 before:via-transparent"
-      style="background-image: url('{movie.backdrop}')"
+      style="background-image: url('{tmdb(movie.backdrop, "w1280")}')"
     ></div>
   {/if}
 
@@ -134,7 +85,10 @@
   <!-- Poster -->
   {#if movie.poster}
     <img
-      src={movie.poster}
+      src={tmdb(movie.poster, "w500")}
+      on:error={(e) => onImgError(e, movie.poster)}
+      decoding="async"
+      fetchpriority="high"
       alt={movie.title}
       class="absolute left-6 bottom-[-4rem] md:bottom-[-6rem] w-44 md:w-56 rounded-lg shadow-2xl border-4 border-gray-900 z-20"
     />
@@ -194,8 +148,7 @@
             on:click={() => openLightbox(i)}
             on:keydown={(e) => { if (e.key === "Enter" || e.key === " ") openLightbox(i); }}
           >
-            <img
-              src={img}
+            <img loading="lazy" decoding="async" on:error={(e) => onImgError(e, img)} src={tmdb(img, "w500")}
               alt="Screenshot from {movie.title}"
               class="rounded-lg"
             />
@@ -222,14 +175,7 @@
         {#if movie.videos?.length > 0}
         {#each movie.videos.slice(0,6) as vid}
           <div class="aspect-video rounded-lg overflow-hidden shadow-lg transform transition-transform duration-300 hover:scale-105 hover:shadow-xl">
-          <iframe
-            width="100%"
-            height="100%"
-            src={`https://www.youtube.com/embed/${vid.key}`}
-            frameborder="0"
-            allowfullscreen
-            title={`Video for ${movie.title}`}
-          ></iframe>
+          <YouTubeEmbed id={vid.key} title={`Video for ${movie.title}`} />
           </div>
         {/each}
         {:else}

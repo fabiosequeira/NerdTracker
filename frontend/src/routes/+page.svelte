@@ -1,28 +1,36 @@
 <script lang="ts">
   import SearchBar from "$lib/components/SearchBar.svelte";
-  import { onMount } from "svelte";
+  import { browser } from "$app/environment";
+  import ParticleBackground from "$lib/components/ParticleBackground.svelte";
+  import { API_BASE, fetchList, getCachedList, setCachedList } from "$lib/api";
+  import { cardImage, onImgError } from "$lib/img";
 
   let movies: any[] = [], shows: any[] = [], anime: any[] = [], games: any[] = [], comics: any[] = [], mangas: any[] = [];
   let activeTab: "Movies" | "Shows" | "Anime" | "Game" | "Comics" | "Mangas" = "Movies";
-  const apiBase = 'https://ntbck.fabioserver.xyz'; // PRODUCTION
-  //   const apiBase = 'http://127.0.0.1:8000'; - LOCAL
+  const apiBase = API_BASE;
   
   let heroItems = []; // not used anymore, kept in case we want to add banner back
 
+  // Show the last-known list instantly when we have one (e.g. coming back from a detail page),
+  // then refresh it in the background.
   async function fetchData(endpoint: string, setter: (data: any) => void) {
+    const cached = getCachedList(endpoint);
+    if (cached) setter(cached);
     try {
-      const res = await fetch(`${apiBase}/${endpoint}/`);
-      const data = await res.json();
-      setter(data);
+      setter(await fetchList(endpoint));
     } catch(e) { console.error(e); }
   }
 
-  fetchData("movies", d => movies = d);
-  fetchData("shows", d => shows = d);
-  fetchData("animes", d => anime = d);
-  fetchData("games", d => games = d);
-  fetchData("comics", d => comics = d);
-  fetchData("manga", d => mangas = d);
+  // Browser only. During SSR these six requests used to fire from the web container as well,
+  // and their results were thrown away.
+  if (browser) {
+    fetchData("movies", d => movies = d);
+    fetchData("shows", d => shows = d);
+    fetchData("animes", d => anime = d);
+    fetchData("games", d => games = d);
+    fetchData("comics", d => comics = d);
+    fetchData("manga", d => mangas = d);
+  }
 
 
 
@@ -32,63 +40,15 @@
     const res = await fetch(`${apiBase}/${endpoint}/${id}`, { method: "DELETE" });
     if(res.ok) {
       alert(`Deleted "${item.title}"`);
-      if(endpoint==="movies") movies = movies.filter(i=>i._id!==id);
-      if(endpoint==="shows") shows = shows.filter(i=>i._id!==id);
-      if(endpoint==="animes") anime = anime.filter(i=>i._id!==id);
-      if(endpoint==="games") games = games.filter(i=>i._id!==id);
-      if(endpoint==="comics") comics = comics.filter(i=>i._id!==id);
-      if(endpoint==="manga") mangas = mangas.filter(i=>i._id!==id);
+      if(endpoint==="movies") { movies = movies.filter(i=>i._id!==id); setCachedList(endpoint, movies); }
+      if(endpoint==="shows") { shows = shows.filter(i=>i._id!==id); setCachedList(endpoint, shows); }
+      if(endpoint==="animes") { anime = anime.filter(i=>i._id!==id); setCachedList(endpoint, anime); }
+      if(endpoint==="games") { games = games.filter(i=>i._id!==id); setCachedList(endpoint, games); }
+      if(endpoint==="comics") { comics = comics.filter(i=>i._id!==id); setCachedList(endpoint, comics); }
+      if(endpoint==="manga") { mangas = mangas.filter(i=>i._id!==id); setCachedList(endpoint, mangas); }
     } else alert("Delete failed ❌");
   }
 
-onMount(() => {
-  const canvas = document.getElementById("particle-canvas") as HTMLCanvasElement;
-  if (!canvas) return;
-  const ctx = canvas.getContext("2d");
-  
-  function resizeCanvas() {
-    canvas.width = document.body.scrollWidth;
-    canvas.height = document.body.scrollHeight;
-  }
-  
-  resizeCanvas();
-
-  const particles = Array.from({ length: 80 }, () => ({
-    x: Math.random() * canvas.width,
-    y: Math.random() * canvas.height,
-    r: Math.random() * 2 + 1,
-    dx: (Math.random() - 0.5) * 0.5,
-    dy: (Math.random() - 0.5) * 0.5,
-  }));
-
-  function draw() {
-    if (!ctx) return;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = "rgba(255,255,255,0.3)";
-    particles.forEach(p => {
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-      ctx.fill();
-      p.x += p.dx;
-      p.y += p.dy;
-
-      if (p.x < 0 || p.x > canvas.width) p.dx *= -1;
-      if (p.y < 0 || p.y > canvas.height) p.dy *= -1;
-    });
-    requestAnimationFrame(draw);
-  }
-  
-  draw();
-
-  window.addEventListener("resize", () => {
-    resizeCanvas();
-    // Optional: reposition particles to stay inside new canvas
-    particles.forEach(p => {
-      p.x = Math.min(p.x, canvas.width);
-      p.y = Math.min(p.y, canvas.height);
-    });
-  });
-});
 
   let sortOrder: "release" | "rating" | "title" = "release"; // default sorting
 
@@ -105,7 +65,7 @@ function sortItems(items: any[]) {
 <main class="relative bg-gray-900 min-h-screen text-gray-100 overflow-x-hidden">
 
   <!-- Particle background -->
-  <canvas id="particle-canvas" class="fixed top-0 left-0 pointer-events-none"></canvas>
+  <ParticleBackground />
 
 
   <!-- Header -->
@@ -153,10 +113,10 @@ function sortItems(items: any[]) {
 <section class="relative z-10 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-6 px-4 md:px-6">
 
   {#if activeTab === "Movies"}
-    {#each sortItems(movies) as item}
+    {#each sortItems(movies) as item (item._id)}
       <div class="relative bg-gray-800 rounded-xl overflow-hidden shadow-lg hover:shadow-2xl hover:scale-105 transform transition duration-300 cursor-pointer group">
         <a href={`/movies/${item._id}`}>
-          <img src={item.poster} alt={item.title} class="w-full aspect-[2/3] object-cover"/>
+          <img src={cardImage(item.poster)} on:error={(e) => onImgError(e, item.poster)} loading="lazy" decoding="async" alt={item.title} class="w-full aspect-[2/3] object-cover"/>
         </a>
         <div class="p-4 space-y-1">
           <a href={`/movies/${item._id}`} class="font-bold text-lg group-hover:text-blue-400">{item.title}</a>
@@ -179,10 +139,10 @@ function sortItems(items: any[]) {
   {/if}
 
   {#if activeTab === "Shows"}
-    {#each sortItems(shows) as item}
+    {#each sortItems(shows) as item (item._id)}
       <div class="relative bg-gray-800 rounded-xl overflow-hidden shadow-lg hover:shadow-2xl hover:scale-105 transform transition duration-300 cursor-pointer group">
         <a href={`/shows/${item._id}`}>
-          <img src={item.poster} alt={item.title} class="w-full aspect-[2/3] object-cover"/>
+          <img src={cardImage(item.poster)} on:error={(e) => onImgError(e, item.poster)} loading="lazy" decoding="async" alt={item.title} class="w-full aspect-[2/3] object-cover"/>
         </a>
         <div class="p-4 space-y-1">
           <a href={`/shows/${item._id}`} class="font-bold text-lg group-hover:text-blue-400">{item.title}</a>
@@ -206,10 +166,10 @@ function sortItems(items: any[]) {
   {/if}
 
   {#if activeTab === "Anime"}
-    {#each sortItems(anime) as item}
+    {#each sortItems(anime) as item (item._id)}
       <div class="relative bg-gray-800 rounded-xl overflow-hidden shadow-lg hover:shadow-2xl hover:scale-105 transform transition duration-300 cursor-pointer group">
         <a href={`/animes/${item._id}`}>
-          <img src={item.poster} alt={item.title} class="w-full aspect-[2/3] object-cover"/>
+          <img src={cardImage(item.poster)} on:error={(e) => onImgError(e, item.poster)} loading="lazy" decoding="async" alt={item.title} class="w-full aspect-[2/3] object-cover"/>
         </a>
         <div class="p-4 space-y-1">
           <a href={`/animes/${item._id}`} class="font-bold text-lg group-hover:text-blue-400">{item.title}</a>
@@ -233,10 +193,10 @@ function sortItems(items: any[]) {
   {/if}
 
   {#if activeTab === "Game"}
-    {#each sortItems(games) as item}
+    {#each sortItems(games) as item (item._id)}
       <div class="relative bg-gray-800 rounded-xl overflow-hidden shadow-lg hover:shadow-2xl hover:scale-105 transform transition duration-300 cursor-pointer group">
         <a href={`/games/${item._id}`}>
-          <img src={item.cover ?? item.poster} alt={item.title} class="w-full aspect-[2/3] object-cover"/>
+          <img src={cardImage(item.cover ?? item.poster)} on:error={(e) => onImgError(e, item.cover ?? item.poster)} loading="lazy" decoding="async" alt={item.title} class="w-full aspect-[2/3] object-cover"/>
         </a>
         <div class="p-4 space-y-1">
           <a href={`/games/${item._id}`} class="font-bold text-lg group-hover:text-blue-400">{item.title}</a>
@@ -259,10 +219,10 @@ function sortItems(items: any[]) {
   {/if}
 
   {#if activeTab === "Comics"}
-    {#each sortItems(comics) as item}
+    {#each sortItems(comics) as item (item._id)}
       <div class="relative bg-gray-800 rounded-xl overflow-hidden shadow-lg hover:shadow-2xl hover:scale-105 transform transition duration-300 cursor-pointer group">
         <a href={`/comics/${item._id}`}>
-          <img src={item.poster} alt={item.title} class="w-full aspect-[2/3] object-cover"/>
+          <img src={cardImage(item.poster)} on:error={(e) => onImgError(e, item.poster)} loading="lazy" decoding="async" alt={item.title} class="w-full aspect-[2/3] object-cover"/>
         </a>
         <div class="p-4 space-y-1">
           <a href={`/comics/${item._id}`} class="font-bold text-lg group-hover:text-blue-400">{item.title}</a>
@@ -279,10 +239,10 @@ function sortItems(items: any[]) {
   {/if}
 
   {#if activeTab === "Mangas"}
-    {#each sortItems(mangas) as item}
+    {#each sortItems(mangas) as item (item._id)}
       <div class="relative bg-gray-800 rounded-xl overflow-hidden shadow-lg hover:shadow-2xl hover:scale-105 transform transition duration-300 cursor-pointer group">
         <a href={`/manga/${item._id}`}>
-          <img src={item.poster} alt={item.title} class="w-full aspect-[2/3] object-cover"/>
+          <img src={cardImage(item.poster)} on:error={(e) => onImgError(e, item.poster)} loading="lazy" decoding="async" alt={item.title} class="w-full aspect-[2/3] object-cover"/>
         </a>
         <div class="p-4 space-y-1">
           <a href={`/manga/${item._id}`} class="font-bold text-lg group-hover:text-blue-400">{item.title}</a>

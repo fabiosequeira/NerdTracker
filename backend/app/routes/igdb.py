@@ -1,9 +1,10 @@
 # app/routes/igdb.py
 import os
 import time
-import httpx
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException
 from dotenv import load_dotenv
+from app.core.cache import TTLCache
+from app.core.http import get_client
 load_dotenv()
 
 router = APIRouter(prefix="/igdb", tags=["igdb"])
@@ -16,6 +17,8 @@ if not IGDB_CLIENT_ID or not IGDB_CLIENT_SECRET:
 _igdb_token: str | None = None
 _igdb_token_expiry = 0.0
 
+_search_cache = TTLCache(ttl=300, maxsize=256)
+
 
 async def _get_igdb_token() -> str:
     global _igdb_token, _igdb_token_expiry
@@ -23,31 +26,29 @@ async def _get_igdb_token() -> str:
     if _igdb_token and time.time() < _igdb_token_expiry:
         return _igdb_token
 
-    async with httpx.AsyncClient() as client:
-        resp = await client.post(
-            "https://id.twitch.tv/oauth2/token",
-            params={
-                "client_id": IGDB_CLIENT_ID,
-                "client_secret": IGDB_CLIENT_SECRET,
-                "grant_type": "client_credentials",
-            },
-            timeout=10,
-        )
-        if resp.status_code != 200:
-            raise HTTPException(status_code=500, detail="Failed to fetch IGDB token")
+    resp = await get_client().post(
+        "https://id.twitch.tv/oauth2/token",
+        params={
+            "client_id": IGDB_CLIENT_ID,
+            "client_secret": IGDB_CLIENT_SECRET,
+            "grant_type": "client_credentials",
+        },
+        timeout=10,
+    )
+    if resp.status_code != 200:
+        raise HTTPException(status_code=500, detail="Failed to fetch IGDB token")
 
-        data = resp.json()
-        _igdb_token = data.get("access_token")
-        _igdb_token_expiry = time.time() + data.get("expires_in", 0) - 60
+    data = resp.json()
+    _igdb_token = data.get("access_token")
+    _igdb_token_expiry = time.time() + data.get("expires_in", 0) - 60
 
-        if not _igdb_token:
-            raise HTTPException(status_code=500, detail="IGDB token is missing")
+    if not _igdb_token:
+        raise HTTPException(status_code=500, detail="IGDB token is missing")
 
-        return _igdb_token
+    return _igdb_token
 
 
-@router.get("/search/game")
-async def search_games(query: str):
+async def _search_games(query: str):
     token = await _get_igdb_token()
 
     headers = {
@@ -64,14 +65,13 @@ async def search_games(query: str):
         limit 10;
     '''
 
-    async with httpx.AsyncClient() as client:
-        resp = await client.post(
-            "https://api.igdb.com/v4/games",
-            content=body.encode("utf-8"),
-            headers=headers
-        )
-        if resp.status_code != 200:
-            raise HTTPException(status_code=resp.status_code, detail=resp.text)
+    resp = await get_client().post(
+        "https://api.igdb.com/v4/games",
+        content=body.encode("utf-8"),
+        headers=headers
+    )
+    if resp.status_code != 200:
+        raise HTTPException(status_code=resp.status_code, detail=resp.text)
 
     data = resp.json()
 
@@ -91,3 +91,7 @@ async def search_games(query: str):
 
     return results
 
+
+@router.get("/search/game")
+async def search_games(query: str):
+    return await _search_cache.get_or_load((query.strip().casefold(),), lambda: _search_games(query))

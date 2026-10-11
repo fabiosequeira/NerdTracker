@@ -1,11 +1,11 @@
 <script lang="ts">
   import { createEventDispatcher } from "svelte";
+  import { API_BASE, getCachedList } from "$lib/api";
   const dispatch = createEventDispatcher();
 
   let query = "";
   let results: any[] = [];
   let loading = false;
-  let items: any[] = []; // DB list
 
   let highlightedIndex = -1; // for keyboard navigation
   let inputEl: HTMLInputElement;
@@ -18,8 +18,27 @@
   const cache = new Map<string, { timestamp: number; data: any[] }>();
   const CACHE_TTL = 120_000; // 2 minutes
 
+  const SEARCH_SOURCES = [
+    { type: "Movie", path: "tmdb/search/movie" },
+    { type: "Show", path: "tmdb/search/tv" },
+    { type: "Anime", path: "tmdb/search/anime" },
+    { type: "Game", path: "igdb/search/game" },
+    { type: "Comic", path: "comics/search" },
+    { type: "Manga", path: "manga/search" }
+  ];
+
+  const ENDPOINT_FOR_TYPE: Record<string, string> = {
+    Movie: "movies", Show: "shows", Anime: "animes", Game: "games", Comic: "comics", Manga: "manga"
+  };
+  // which stored field holds the external (search) id for each type
+  const ID_FIELD_FOR_TYPE: Record<string, string> = {
+    Movie: "tmdb_id", Show: "tmdb_id", Anime: "tmdb_id", Game: "igdb_id", Comic: "comicvine_id", Manga: "anilist_id"
+  };
+
   async function searchAllInternal(q: string) {
     if (q.length < 2) {
+      if (currentController) currentController.abort();
+      loading = false;
       results = [];
       highlightedIndex = -1;
       return;
@@ -38,46 +57,36 @@
     if (currentController) {
       currentController.abort();
     }
-    currentController = new AbortController();
-    const { signal } = currentController;
+    const controller = new AbortController();
+    currentController = controller;
+    const { signal } = controller;
 
-    try {
-      const [moviesRes, showsRes, animeRes, gamesRes, comicsRes, mangasRes] = await Promise.all([
-        fetch(`https://ntbck.fabioserver.xyz/tmdb/search/movie?query=${encodeURIComponent(q)}`, { signal }),
-        fetch(`https://ntbck.fabioserver.xyz/tmdb/search/tv?query=${encodeURIComponent(q)}`, { signal }),
-        fetch(`https://ntbck.fabioserver.xyz/tmdb/search/anime?query=${encodeURIComponent(q)}`, { signal }),
-        fetch(`https://ntbck.fabioserver.xyz/igdb/search/game?query=${encodeURIComponent(q)}`, { signal }),
-        fetch(`https://ntbck.fabioserver.xyz/comics/search?query=${encodeURIComponent(q)}`, { signal }),
-        fetch(`https://ntbck.fabioserver.xyz/manga/search?query=${encodeURIComponent(q)}`, { signal })
-      ]);
+    const collected: any[] = [];
+    let allOk = true;
 
-      const movies = await moviesRes.json();
-      const shows = await showsRes.json();
-      const animes = await animeRes.json();
-      const games = await gamesRes.json();
-      const comics = await comicsRes.json();
-      const manga = await mangasRes.json();
+    // Each source reports as soon as it answers, so fast ones show up immediately instead of
+    // everything waiting for the slowest (ComicVine, TV detail lookups). A source that fails no
+    // longer throws away the results of the others.
+    await Promise.all(
+      SEARCH_SOURCES.map(async ({ type, path }) => {
+        try {
+          const res = await fetch(`${API_BASE}/${path}?query=${encodeURIComponent(q)}`, { signal });
+          const data = res.ok ? await res.json() : null;
+          if (!Array.isArray(data)) { allOk = false; return; }
+          if (signal.aborted) return;
+          collected.push(...data.map((item: any) => ({ ...item, type })));
+          results = [...collected].sort((a, b) => (b.popularity ?? 0) - (a.popularity ?? 0));
+          highlightedIndex = -1;
+        } catch (err: any) {
+          allOk = false;
+          if (err.name !== "AbortError") console.error(`Search failed (${type}):`, err);
+        }
+      })
+    );
 
-      const merged = [
-        ...movies.map((m: any) => ({ ...m, type: "Movie" })),
-        ...shows.map((s: any) => ({ ...s, type: "Show" })),
-        ...animes.map((a: any) => ({ ...a, type: "Anime" })),
-        ...games.map((g: any) => ({ ...g, type: "Game" })),
-        ...comics.map((c: any) => ({ ...c, type: "Comic" })),
-        ...manga.map((m: any) => ({ ...m, type: "Manga" }))
-      ].sort((a, b) => (b.popularity ?? 0) - (a.popularity ?? 0));
-
-      results = merged;
-      cache.set(q, { timestamp: Date.now(), data: merged });
-      highlightedIndex = -1;
-    } catch (err: any) {
-      if (err.name === "AbortError") {
-        return; // Ignore aborted requests
-      }
-      console.error("Search failed:", err);
-    } finally {
-      loading = false;
-    }
+    if (signal.aborted) return; // superseded by a newer query
+    if (allOk) cache.set(q, { timestamp: Date.now(), data: results });
+    loading = false;
   }
 
   function searchAll() {
@@ -87,28 +96,13 @@
     }, 300); // 300ms debounce
   }
 
-  async function fetchItems(endpoint: string) {
-    try {
-      const res = await fetch(`https://ntbck.fabioserver.xyz/${endpoint}/`);
-      if (res.ok) items = await res.json();
-    } catch (err) {
-      console.error("Failed to fetch items:", err);
-    }
-  }
-
   async function addItem(item: any) {
-    let endpoint = "";
-    if (item.type === "Movie") endpoint = "movies";
-    if (item.type === "Show") endpoint = "shows";
-    if (item.type === "Anime") endpoint = "animes";
-    if (item.type === "Game") endpoint = "games";
-    if (item.type === "Comic") endpoint = "comics";
-    if (item.type === "Manga") endpoint = "manga";
-
+    const endpoint = ENDPOINT_FOR_TYPE[item.type];
     if (!endpoint) return;
 
-    //check local items before sending request
-    if (items.some(existing => existing.id === item.id || existing.igdb_id === item.id || existing.tmdb_id === item.id || existing.anilist_id === item.id || existing.comicvine_id === item.id)) {
+    // check the library the home page already loaded (per type) before sending a request
+    const idField = ID_FIELD_FOR_TYPE[item.type];
+    if (getCachedList(endpoint)?.some((existing) => existing[idField] === item.id)) {
       alert(`${item.type} "${item.title}" is already in your library ✅`);
       return;
     }
@@ -117,14 +111,14 @@
       let res;
 
       if (item.type === "Game") {
-        res = await fetch(`https://ntbck.fabioserver.xyz/${endpoint}/?igdb_id=${item.id}`, { method: "POST" });
+        res = await fetch(`${API_BASE}/${endpoint}/?igdb_id=${item.id}`, { method: "POST" });
       } else if (item.type === "Comic") {
-        res = await fetch(`https://ntbck.fabioserver.xyz/comics/?comicvine_id=${item.id}`, { method: "POST" });
+        res = await fetch(`${API_BASE}/comics/?comicvine_id=${item.id}`, { method: "POST" });
       } else if (item.type === "Manga") {
-        res = await fetch(`https://ntbck.fabioserver.xyz/manga/?anilist_id=${item.id}`, { method: "POST" });
+        res = await fetch(`${API_BASE}/manga/?anilist_id=${item.id}`, { method: "POST" });
       } else {
         // Movies, Shows, Anime
-        res = await fetch(`https://ntbck.fabioserver.xyz/${endpoint}/?tmdb_id=${item.id}`, { method: "POST" });
+        res = await fetch(`${API_BASE}/${endpoint}/?tmdb_id=${item.id}`, { method: "POST" });
       }
 
       if (!res.ok) {
@@ -134,20 +128,11 @@
         return;
       }
 
-      // fetch all DB lists after adding
-      await Promise.all([
-        fetchItems("movies"),
-        fetchItems("shows"),
-        fetchItems("animes"),
-        fetchItems("games"),
-        fetchItems("comics"),
-        fetchItems("manga")
-      ]);
-
       alert(`${item.type} "${item.title}" added ✅`);
       query = "";
       results = [];
       highlightedIndex = -1;
+      // the home page re-fetches just this list (and refreshes its cache)
       dispatch('itemAdded', { type: item.type });
 
     } catch (err) {
@@ -189,7 +174,7 @@
     class="w-full border border-gray-700 rounded-lg p-2 bg-gray-800 text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-400"
   />
 
-  {#if loading}
+  {#if loading && results.length === 0}
     <div class="absolute bg-gray-800 border border-gray-700 w-full mt-1 p-2 text-gray-400 z-50">Loading...</div>
   {/if}
 
@@ -204,7 +189,7 @@
           on:click={() => addItem(item)}
         >
           {#if item.poster}
-            <img src={item.poster} alt={item.title} class="w-10 h-14 object-cover rounded" />
+            <img src={item.poster} alt={item.title} width="40" height="56" loading="lazy" decoding="async" class="w-10 h-14 object-cover rounded" />
           {/if}
 
           <div>

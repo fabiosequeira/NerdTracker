@@ -1,15 +1,25 @@
-FROM node:20
+# ---- build stage: needs the dev dependencies (vite, svelte, tailwind...) ----
+FROM node:20-slim AS build
 
 WORKDIR /app
 
+# Dependency layer is cached until package*.json changes. `npm ci` is faster and reproducible.
 COPY frontend/package*.json ./
-RUN npm install
+RUN npm ci
 
 COPY frontend/ .
-
 RUN npm run build
 
 
+# ---- runtime stage: just the compiled server (adapter-node output is self-contained) ----
+FROM node:20-slim
+
+WORKDIR /app
+ENV NODE_ENV=production
+
+# package.json is needed so Node treats build/*.js as ES modules ("type": "module")
+COPY --from=build /app/package.json ./package.json
+COPY --from=build /app/build ./build
 
 EXPOSE 3000
 

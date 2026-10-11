@@ -1,29 +1,16 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { page } from "$app/stores";
   import { tick } from "svelte";
+  import ParticleBackground from "$lib/components/ParticleBackground.svelte";
+  import { igdb, onImgError } from "$lib/img";
 
+  export let data: any;
   let game: any = null;
+  $: game = data.item;
   let activeTab: "Details" | "Storyline" | "Extras" | "Trophies" | "Screenshots" | "Artworks" | "Videos" = "Details";
 
   let tabRefs: (HTMLButtonElement | null)[] = [];
   let underlineStyle = "";
-
-  const apiBase = 'https://ntbck.fabioserver.xyz'; // PRODUCTION
-  //   const apiBase = 'http://127.0.0.1:8000'; - LOCAL
-  $: gameId = $page.params.id;
-
-  async function fetchGame() {
-    try {
-      const res = await fetch(`${apiBase}/games/${gameId}`);
-      if (!res.ok) throw new Error("Failed to fetch game");
-      game = await res.json();
-      await tick();
-      updateUnderline();
-    } catch (err) {
-      console.error(err);
-    }
-  }
 
   function setActive(tab: typeof activeTab, index: number) {
     activeTab = tab;
@@ -68,50 +55,14 @@
   }
 
   onMount(() => {
-    fetchGame();
+    tick().then(() => updateUnderline());
     window.addEventListener("keydown", handleKeydown);
-    const canvas = document.getElementById("particle-canvas") as HTMLCanvasElement;
-  if (canvas) {
-    const ctx = canvas.getContext("2d");
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-
-    const particles = Array.from({ length: 80 }, () => ({
-      x: Math.random() * canvas.width,
-      y: Math.random() * canvas.height,
-      r: Math.random() * 2 + 1,
-      dx: (Math.random() - 0.5) * 0.5,
-      dy: (Math.random() - 0.5) * 0.5,
-    }));
-
-    function draw() {
-      if (!ctx) return;
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.fillStyle = "rgba(255,255,255,0.3)";
-      particles.forEach((p) => {
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-        ctx.fill();
-        p.x += p.dx;
-        p.y += p.dy;
-        if (p.x < 0 || p.x > canvas.width) p.dx *= -1;
-        if (p.y < 0 || p.y > canvas.height) p.dy *= -1;
-      });
-      requestAnimationFrame(draw);
-    }
-    draw();
-
-    window.addEventListener("resize", () => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-    });
-  }
     return () => window.removeEventListener("keydown", handleKeydown);
   });
 </script>
 
 <!-- Particle background -->
-  <canvas id="particle-canvas" class="absolute inset-0 w-full h-full pointer-events-none"></canvas>
+  <ParticleBackground />
 
 {#if game}
 <main class="min-h-screen bg-gray-900 text-gray-100">
@@ -282,8 +233,7 @@
                 on:click={() => openLightbox(game.screenshots, i)}
                 aria-label="View screenshot from {game.title}"
               >
-                <img
-                  src={img}
+                <img loading="lazy" decoding="async" on:error={(e) => onImgError(e, img)} src={igdb(img, "t_screenshot_med")}
                   alt="Screenshot from {game.title}"
                   class="rounded-lg w-full h-auto"
                 />
@@ -305,8 +255,7 @@
                 on:click={() => openLightbox(game.artworks, i)}
                 aria-label="View artwork from {game.title}"
               >
-                <img
-                  src={art}
+                <img loading="lazy" decoding="async" on:error={(e) => onImgError(e, art)} src={igdb(art, "t_screenshot_med")}
                   alt="Artwork from {game.title}"
                   class="rounded-lg w-full h-auto"
                 />

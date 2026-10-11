@@ -32,3 +32,4 @@ class Show(Document):
 
     class Settings:
         name = "shows"
+        indexes = ["tmdb_id"]

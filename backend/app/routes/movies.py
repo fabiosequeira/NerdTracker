@@ -1,7 +1,8 @@
 from fastapi import APIRouter, HTTPException
 from beanie import PydanticObjectId
 from app.models.movie import Movie
-import httpx
+from app.core.http import get_client
+from app.core.listing import list_documents
 import os
 from dotenv import load_dotenv
 load_dotenv()
@@ -12,9 +13,13 @@ if not TMDB_API_KEY:
     raise ValueError("TMDB_API_KEY is not set in environment")
 
 
+# Fields the grid doesn't need; omitted from the list by default (use ?full=true for everything).
+LIST_EXCLUDE = ("overview", "backdrop", "videos", "images")
+
+
 @router.get("/", response_model=list[Movie])
-async def list_movies():
-    return await Movie.find_all().to_list()
+async def list_movies(full: bool = False):
+    return await list_documents(Movie, LIST_EXCLUDE, full)
 
 
 @router.post("/", response_model=Movie)
@@ -33,11 +38,11 @@ async def add_movie(tmdb_id: int):
         "include_image_language": "en,null"
     }
 
-    async with httpx.AsyncClient() as client:
-        resp = await client.get(url, params=params)
-        if resp.status_code != 200:
-            raise HTTPException(status_code=resp.status_code, detail="TMDb request failed")
-        details = resp.json()
+    client = get_client()
+    resp = await client.get(url, params=params)
+    if resp.status_code != 200:
+        raise HTTPException(status_code=resp.status_code, detail="TMDb request failed")
+    details = resp.json()
 
     payload = {
         "title": details.get("title"),

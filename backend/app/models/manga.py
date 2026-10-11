@@ -22,3 +22,4 @@ class Manga(Document):
     
     class Settings:
         name = "manga"
+        indexes = ["anilist_id"]

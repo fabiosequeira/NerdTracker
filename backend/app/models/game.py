@@ -37,3 +37,4 @@ class Game(Document):
     trophies: List[Trophy] = []
     class Settings:
         name = "games"
+        indexes = ["igdb_id"]

@@ -14,3 +14,4 @@ class Comic(Document):
     
     class Settings:
         name = "comics"
+        indexes = ["comicvine_id"]

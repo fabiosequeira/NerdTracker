@@ -32,3 +32,4 @@ class Anime(Document):
 
     class Settings:
         name = "anime"
+        indexes = ["tmdb_id"]

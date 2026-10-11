@@ -1,30 +1,16 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { page } from "$app/stores";
   import { tick } from "svelte";
+  import ParticleBackground from "$lib/components/ParticleBackground.svelte";
+  import YouTubeEmbed from "$lib/components/YouTubeEmbed.svelte";
 
+  export let data: any;
   let manga: any = null;
+  $: manga = data.item;
   let activeTab: "Details" | "Trailer" = "Details";
 
   let tabRefs: (HTMLButtonElement | null)[] = [];
   let underlineStyle = "";
-
-  const apiBase = 'https://ntbck.fabioserver.xyz'; // PRODUCTION
-  //   const apiBase = 'http://127.0.0.1:8000'; - LOCAL
-  
-  $: mangaId = $page.params.id;
-
-  async function fetchManga() {
-    try {
-      const res = await fetch(`${apiBase}/manga/${mangaId}`);
-      if (!res.ok) throw new Error("Failed to fetch manga");
-      manga = await res.json();
-      await tick();
-      updateUnderline();
-    } catch (err) {
-      console.error(err);
-    }
-  }
 
   function setActive(tab: typeof activeTab, index: number) {
     activeTab = tab;
@@ -39,44 +25,8 @@
   }
 
   onMount(() => {
-    fetchManga();
+    tick().then(() => updateUnderline());
     window.addEventListener("keydown", handleKeydown);
-    const canvas = document.getElementById("particle-canvas") as HTMLCanvasElement;
-  if (canvas) {
-    const ctx = canvas.getContext("2d");
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-
-    const particles = Array.from({ length: 80 }, () => ({
-      x: Math.random() * canvas.width,
-      y: Math.random() * canvas.height,
-      r: Math.random() * 2 + 1,
-      dx: (Math.random() - 0.5) * 0.5,
-      dy: (Math.random() - 0.5) * 0.5,
-    }));
-
-    function draw() {
-      if (!ctx) return;
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.fillStyle = "rgba(255,255,255,0.3)";
-      particles.forEach((p) => {
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-        ctx.fill();
-        p.x += p.dx;
-        p.y += p.dy;
-        if (p.x < 0 || p.x > canvas.width) p.dx *= -1;
-        if (p.y < 0 || p.y > canvas.height) p.dy *= -1;
-      });
-      requestAnimationFrame(draw);
-    }
-    draw();
-
-    window.addEventListener("resize", () => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-    });
-  }
     return () => window.removeEventListener("keydown", handleKeydown);
   });
 
@@ -84,7 +34,7 @@
 </script>
 
 <!-- Particle background -->
-<canvas id="particle-canvas" class="absolute inset-0 w-full h-full pointer-events-none"></canvas>
+<ParticleBackground />
 
 {#if manga}
 <main class="min-h-screen bg-gray-900 text-gray-100">
@@ -166,14 +116,7 @@
       <div class="grid grid-cols-1 justify-items-center gap-8">
         {#if manga.trailer_id}
           <div class="aspect-video rounded-lg overflow-hidden shadow-lg transform transition-transform duration-300 hover:scale-105 hover:shadow-xl w-full max-w-3xl">
-            <iframe
-              width="100%"
-              height="100%"
-              src={`https://www.youtube.com/embed/${manga.trailer_id}`}
-              frameborder="0"
-              allowfullscreen
-              title={`Trailer for ${manga.title}`}
-            ></iframe>
+            <YouTubeEmbed id={manga.trailer_id} title={`Trailer for ${manga.title}`} />
           </div>
         {:else}
           <p class="text-gray-400">No trailer available.</p>

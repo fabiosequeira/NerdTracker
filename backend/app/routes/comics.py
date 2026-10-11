@@ -1,9 +1,11 @@
 from fastapi import APIRouter, HTTPException
 from beanie import PydanticObjectId
 from app.models.comic import Comic
+from app.core.cache import TTLCache
+from app.core.http import get_client
+from app.core.listing import list_documents
 import re
 from html import unescape
-import httpx
 import os
 from dotenv import load_dotenv
 load_dotenv()
@@ -37,8 +39,10 @@ def parse_year(value):
     return int(match.group()) if match else None
 
 
-@router.get("/search")
-async def search_comics(query: str):
+_search_cache = TTLCache(ttl=300, maxsize=256)
+
+
+async def _search_comics_upstream(query: str):
     url = "https://comicvine.gamespot.com/api/search/"
     params = {
         "api_key": COMICVINE_API_KEY,
@@ -49,34 +53,43 @@ async def search_comics(query: str):
     }
     headers = {"User-Agent": "FabioMediaApp/1.0 (fabio10cfy@gmail.com)"}
 
-    async with httpx.AsyncClient() as client:
-        resp = await client.get(url, params=params, headers=headers)
-        if resp.status_code != 200:
-            raise HTTPException(status_code=resp.status_code, detail="ComicVine request failed")
+    resp = await get_client().get(url, params=params, headers=headers)
+    if resp.status_code != 200:
+        raise HTTPException(status_code=resp.status_code, detail="ComicVine request failed")
 
-        data = resp.json()
+    data = resp.json()
 
     if data.get("status_code") != 1:
         raise HTTPException(status_code=400, detail=data.get("error", "Unknown error"))
 
     results = []
     for item in data.get("results", []):
+        image = item.get("image") or {}
         results.append({
             "id": item.get("id"),
             "title": item.get("name"),
             "year": parse_year(item.get("start_year") or ""),
-            "poster": item.get("image", {}).get("original_url"),
+            # search results are only shown as a tiny thumbnail: don't ship the full-size original
+            "poster": image.get("small_url") or image.get("thumb_url") or image.get("original_url"),
             "count_of_issues": item.get("count_of_issues"),
-            "publisher": item.get("publisher", {}).get("name"),
+            "publisher": (item.get("publisher") or {}).get("name"),
         })
 
     return results
 
 
+@router.get("/search")
+async def search_comics(query: str):
+    return await _search_cache.get_or_load(query.strip().casefold(), lambda: _search_comics_upstream(query))
+
+
+# Fields the grid doesn't need; omitted from the list by default (use ?full=true for everything).
+LIST_EXCLUDE = ("summary", "site_detail_url", "api_detail_url")
+
 
 @router.get("/", response_model=list[Comic])
-async def list_comics():
-    return await Comic.find_all().to_list()
+async def list_comics(full: bool = False):
+    return await list_documents(Comic, LIST_EXCLUDE, full)
 
 @router.post("/", response_model=Comic)
 async def add_comic(comicvine_id: int):
@@ -92,14 +105,13 @@ async def add_comic(comicvine_id: int):
         "format": "json",
     }
 
-    async with httpx.AsyncClient() as client:
-        headers = {
-            "User-Agent": "FabioMediaApp/1.0 (fabio10cfy@gmail.com)"
-        }
-        resp = await client.get(url, params=params, headers=headers)
-        if resp.status_code != 200:
-            raise HTTPException(status_code=resp.status_code, detail="ComicVine request failed")
-        details = resp.json()
+    headers = {
+        "User-Agent": "FabioMediaApp/1.0 (fabio10cfy@gmail.com)"
+    }
+    resp = await get_client().get(url, params=params, headers=headers)
+    if resp.status_code != 200:
+        raise HTTPException(status_code=resp.status_code, detail="ComicVine request failed")
+    details = resp.json()
 
 
     if details.get("status_code") != 1:

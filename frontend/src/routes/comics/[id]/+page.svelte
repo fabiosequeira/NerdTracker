@@ -1,30 +1,16 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { page } from "$app/stores";
   import { tick } from "svelte";
+  import ParticleBackground from "$lib/components/ParticleBackground.svelte";
+  import { comicvine, onImgError } from "$lib/img";
 
+  export let data: any;
   let comic: any = null;
+  $: comic = data.item;
   let activeTab: "Details" | "Issues" = "Details";
 
   let tabRefs: (HTMLButtonElement | null)[] = [];
   let underlineStyle = "";
-
-  const apiBase = 'https://ntbck.fabioserver.xyz'; // PRODUCTION
-  //   const apiBase = 'http://127.0.0.1:8000'; - LOCAL
-  
-  $: comicId = $page.params.id;
-
-  async function fetchComic() {
-    try {
-      const res = await fetch(`${apiBase}/comics/${comicId}`);
-      if (!res.ok) throw new Error("Failed to fetch comic");
-      comic = await res.json();
-      await tick();
-      updateUnderline();
-    } catch (err) {
-      console.error(err);
-    }
-  }
 
   function setActive(tab: typeof activeTab, index: number) {
     activeTab = tab;
@@ -39,44 +25,8 @@
   }
 
   onMount(() => {
-    fetchComic();
+    tick().then(() => updateUnderline());
     window.addEventListener("keydown", handleKeydown);
-    const canvas = document.getElementById("particle-canvas") as HTMLCanvasElement;
-  if (canvas) {
-    const ctx = canvas.getContext("2d");
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-
-    const particles = Array.from({ length: 80 }, () => ({
-      x: Math.random() * canvas.width,
-      y: Math.random() * canvas.height,
-      r: Math.random() * 2 + 1,
-      dx: (Math.random() - 0.5) * 0.5,
-      dy: (Math.random() - 0.5) * 0.5,
-    }));
-
-    function draw() {
-      if (!ctx) return;
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.fillStyle = "rgba(255,255,255,0.3)";
-      particles.forEach((p) => {
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-        ctx.fill();
-        p.x += p.dx;
-        p.y += p.dy;
-        if (p.x < 0 || p.x > canvas.width) p.dx *= -1;
-        if (p.y < 0 || p.y > canvas.height) p.dy *= -1;
-      });
-      requestAnimationFrame(draw);
-    }
-    draw();
-
-    window.addEventListener("resize", () => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-    });
-  }
     return () => window.removeEventListener("keydown", handleKeydown);
   });
 
@@ -84,7 +34,7 @@
 </script>
 
 <!-- Particle background -->
-<canvas id="particle-canvas" class="absolute inset-0 w-full h-full pointer-events-none"></canvas>
+<ParticleBackground />
 
 {#if comic}
 <main class="min-h-screen bg-gray-900 text-gray-100">
@@ -101,7 +51,10 @@
   <!-- Cover -->
   {#if comic.poster}
     <img
-      src={comic.poster}
+      src={comicvine(comic.poster)}
+      on:error={(e) => onImgError(e, comic.poster)}
+      decoding="async"
+      fetchpriority="high"
       alt={comic.title}
       class="absolute left-6 bottom-[-4rem] md:bottom-[-6rem] w-44 md:w-56 rounded-lg shadow-2xl border-4 border-gray-900 z-20"
     />

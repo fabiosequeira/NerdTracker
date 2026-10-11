@@ -2,7 +2,8 @@ from fastapi import APIRouter, HTTPException, Query, Body
 from beanie import PydanticObjectId
 from app.models.game import Game, Trophy
 from typing import List, Optional
-import httpx
+from app.core.http import get_client
+from app.core.listing import list_documents
 import os
 import time
 from dotenv import load_dotenv
@@ -34,19 +35,26 @@ async def get_igdb_token() -> str:
         "grant_type": "client_credentials",
     }
 
-    async with httpx.AsyncClient() as client:
-        resp = await client.post(url, params=params)
-        if resp.status_code != 200:
-            raise HTTPException(status_code=resp.status_code, detail="Failed to fetch IGDB token")
-        data = resp.json()
-        igdb_token = data["access_token"]
-        igdb_token_expiry = time.time() + data["expires_in"] - 60  # renew a bit earlier
-        return igdb_token
+    client = get_client()
+    resp = await client.post(url, params=params)
+    if resp.status_code != 200:
+        raise HTTPException(status_code=resp.status_code, detail="Failed to fetch IGDB token")
+    data = resp.json()
+    igdb_token = data["access_token"]
+    igdb_token_expiry = time.time() + data["expires_in"] - 60  # renew a bit earlier
+    return igdb_token
+
+
+# Fields the grid doesn't need; omitted from the list by default (use ?full=true for everything).
+LIST_EXCLUDE = (
+    "screenshots", "artworks", "websites", "dlcs", "expansions", "remakes", "remasters",
+    "bundles", "involved_companies", "summary", "storyline", "trophies",
+)
 
 
 @router.get("/", response_model=list[Game])
-async def list_games():
-    return await Game.find_all().to_list()
+async def list_games(full: bool = False):
+    return await list_documents(Game, LIST_EXCLUDE, full)
 
 
 @router.post("/", response_model=Game)
@@ -75,14 +83,14 @@ fields id, name, first_release_date, hypes, genres.name, rating, cover.image_id,
 where id = {igdb_id};
 """
 
-    async with httpx.AsyncClient() as client:
-        resp = await client.post(url, content=body, headers=headers)
-        if resp.status_code != 200:
-            raise HTTPException(status_code=resp.status_code, detail="IGDB request failed")
-        data = resp.json()
-        if not data:
-            raise HTTPException(status_code=404, detail="Game not found in IGDB")
-        details = data[0]
+    client = get_client()
+    resp = await client.post(url, content=body, headers=headers)
+    if resp.status_code != 200:
+        raise HTTPException(status_code=resp.status_code, detail="IGDB request failed")
+    data = resp.json()
+    if not data:
+        raise HTTPException(status_code=404, detail="Game not found in IGDB")
+    details = data[0]
 
 
     payload = {

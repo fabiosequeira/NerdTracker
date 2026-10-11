@@ -1,49 +1,79 @@
 # backend/app/utils/fill_shows.py
-from app.models.show import Show
-from app.routes.animes import TMDB_API_KEY
-import httpx
 
-async def fetch_episodes(tmdb_id: int):
-    episodes_list = []
-    async with httpx.AsyncClient() as client:
-        url = f"https://api.themoviedb.org/3/tv/{tmdb_id}"
-        params = {"api_key": TMDB_API_KEY, "language": "en-US"}
-        resp = await client.get(url, params=params)
-        if resp.status_code != 200:
-            return []
-        details = resp.json()
-        for season in details.get("seasons", []):
-            season_number = season.get("season_number")
-            if season_number == 0:
-                continue
-            season_url = f"https://api.themoviedb.org/3/tv/{tmdb_id}/season/{season_number}"
-            season_resp = await client.get(season_url, params={"api_key": TMDB_API_KEY, "language": "en-US"})
-            if season_resp.status_code != 200:
-                continue
-            season_data = season_resp.json()
-            for ep in season_data.get("episodes", []):
-                episodes_list.append({
-                    "season": season_number,
-                    "episode": ep.get("episode_number"),
-                    "title": ep.get("name"),
-                    "overview": ep.get("overview"),
-                    "air_date": ep.get("air_date"),
-                    "still": f"https://image.tmdb.org/t/p/w500{ep['still_path']}" if ep.get("still_path") else None
-                })
-    return episodes_list
+from app.models.show import Show, Episode
+from app.routes.animes import TMDB_API_KEY
+from app.core.http import get_client
+from app.utils.tmdb_episodes import fetch_season_episodes
+
+
+async def fetch_episodes(tmdb_id: int) -> list[Episode]:
+    if not TMDB_API_KEY:
+        raise RuntimeError(
+            "TMDB_API_KEY environment variable is not configured"
+        )
+
+    client = get_client()
+    url = f"https://api.themoviedb.org/3/tv/{tmdb_id}"
+    params = {"api_key": TMDB_API_KEY, "language": "en-US"}
+
+    resp = await client.get(url, params=params)
+
+    if resp.status_code != 200:
+        return []
+
+    details = resp.json()
+
+    episodes = await fetch_season_episodes(
+        client,
+        TMDB_API_KEY,
+        tmdb_id,
+        [
+            season.get("season_number")
+            for season in details.get("seasons", [])
+        ],
+        skip_specials=True,
+    )
+
+    return [
+        Episode.model_validate(episode)
+        for episode in episodes
+    ]
+
 
 async def fill_shows():
-    shows = await Show.find_all().to_list()
+    # Only load entries that still need episodes.
+    shows = await Show.find(
+        {
+            "$or": [
+                {"episodes_list": None},
+                {"episodes_list": []},
+            ]
+        }
+    ).to_list()
+
     for show in shows:
         if not show.episodes_list:
             print(f"Fetching episodes for {show.title}...")
+
             try:
                 if show.tmdb_id is not None:
-                    show.episodes_list = await fetch_episodes(show.tmdb_id)
+                    show.episodes_list = await fetch_episodes(
+                        show.tmdb_id
+                    )
                 else:
-                    print(f"Skipping {show.title}: tmdb_id is None")
+                    print(
+                        f"Skipping {show.title}: tmdb_id is None"
+                    )
+
             except Exception as e:
-                print(f"Failed to fetch episodes for {show.title}: {e}")
-            
+                print(
+                    f"Failed to fetch episodes for "
+                    f"{show.title}: {e}"
+                )
+
             await show.save()
-            print(f"Saved {len(show.episodes_list or [])} episodes for {show.title}")
+
+            print(
+                f"Saved {len(show.episodes_list or [])} "
+                f"episodes for {show.title}"
+            )

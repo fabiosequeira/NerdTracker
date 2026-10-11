@@ -20,3 +20,4 @@ class Movie(Document):
 
     class Settings:
         name = "movies"
+        indexes = ["tmdb_id"]

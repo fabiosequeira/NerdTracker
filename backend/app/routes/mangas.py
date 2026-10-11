@@ -1,6 +1,9 @@
 from fastapi import APIRouter, HTTPException
 from beanie import PydanticObjectId
 from app.models.manga import Manga
+from app.core.cache import TTLCache
+from app.core.http import get_client
+from app.core.listing import list_documents
 import re
 from html import unescape
 import httpx
@@ -9,7 +12,6 @@ from dotenv import load_dotenv
 load_dotenv()
 
 router = APIRouter(prefix="/manga", tags=["manga"])
-client = httpx.AsyncClient()
 
 def clean_description(html: str):
     if not html:
@@ -20,8 +22,10 @@ def clean_description(html: str):
     return unescape(text).strip()
 
 
-@router.get("/search")
-async def search_manga(query: str):
+_search_cache = TTLCache(ttl=300, maxsize=256)
+
+
+async def _search_manga_upstream(query: str):
     url = "https://graphql.anilist.co/"
     graphql_query = """
     query ($search: String) {
@@ -44,17 +48,10 @@ async def search_manga(query: str):
     """
     variables = {"search": query}
 
-    try:
-        async with httpx.AsyncClient(timeout=10) as client:
-            resp = await client.post(url, json={"query": graphql_query, "variables": variables})
-            resp.raise_for_status()
-            data = resp.json()
-    except httpx.HTTPStatusError as e:
-        print(f"AniList error: {e.response.status_code} {e.response.text}")
-        return []
-    except Exception as e:
-        print(f"AniList request failed: {e}")
-        return []
+    # Errors propagate (so a failed lookup is never cached); the route turns them into [].
+    resp = await get_client().post(url, json={"query": graphql_query, "variables": variables})
+    resp.raise_for_status()
+    data = resp.json()
 
     media_list = data.get("data", {}).get("Page", {}).get("media", [])
     results = []
@@ -68,9 +65,24 @@ async def search_manga(query: str):
 
     return results
 
+
+@router.get("/search")
+async def search_manga(query: str):
+    try:
+        return await _search_cache.get_or_load(query.strip().casefold(), lambda: _search_manga_upstream(query))
+    except httpx.HTTPStatusError as e:
+        print(f"AniList error: {e.response.status_code} {e.response.text}")
+        return []
+    except Exception as e:
+        print(f"AniList request failed: {e}")
+        return []
+
+# Fields the grid doesn't need; omitted from the list by default (use ?full=true for everything).
+LIST_EXCLUDE = ("summary", "banner_image", "trailer_site", "trailer_id", "trailer_thumbnail")
+
 @router.get("/", response_model=list[Manga])
-async def list_manga():
-    return await Manga.find_all().to_list()
+async def list_manga(full: bool = False):
+    return await list_documents(Manga, LIST_EXCLUDE, full)
 
 @router.post("/", response_model=Manga)
 async def add_manga(anilist_id: int):
@@ -116,16 +128,15 @@ async def add_manga(anilist_id: int):
 
     variables = {"id": anilist_id}
 
-    async with httpx.AsyncClient() as client:
-        resp = await client.post(url, json={
-            "query": graphql_query,
-            "variables": variables
-        })
+    resp = await get_client().post(url, json={
+        "query": graphql_query,
+        "variables": variables
+    })
 
-        if resp.status_code != 200:
-            raise HTTPException(status_code=resp.status_code, detail="AniList request failed")
+    if resp.status_code != 200:
+        raise HTTPException(status_code=resp.status_code, detail="AniList request failed")
 
-        data = resp.json()
+    data = resp.json()
 
     media = data.get("data", {}).get("Media")
     if not media:

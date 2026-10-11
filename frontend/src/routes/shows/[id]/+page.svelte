@@ -1,158 +1,161 @@
 <script lang="ts">
-  import { onMount } from "svelte";
-  import { page } from "$app/stores";
-  import { tick } from "svelte";
+  import { onMount, tick } from "svelte";
+  import ParticleBackground from "$lib/components/ParticleBackground.svelte";
+  import { tmdb, onImgError } from "$lib/img";
+  import YouTubeEmbed from "$lib/components/YouTubeEmbed.svelte";
+
+  export let data: any;
 
   let show: any = null;
-  let activeTab: "Details" | "Episodes" | "Screenshots" | "Videos" = "Details";
+  $: show = data.item;
 
+  type Episode = {
+    season: number;
+    episode: number;
+    title?: string | null;
+    overview?: string | null;
+    air_date?: string | null;
+    still?: string | null;
+  };
+
+  type Video = {
+    key: string;
+  };
+
+  type Tab = "Details" | "Episodes" | "Screenshots" | "Videos";
+
+  let activeTab: Tab = "Details";
   let tabRefs: (HTMLButtonElement | null)[] = [];
   let underlineStyle = "";
 
-  const apiBase = 'https://ntbck.fabioserver.xyz'; // PRODUCTION
-  //   const apiBase = 'http://127.0.0.1:8000'; - LOCAL
-  
-  $: showId = $page.params.id;
+  // Episode and season state
+  let selectedSeason: number | null = null;
+  let grouped: Record<number, Episode[]> = {};
+  let seasons: number[] = [];
+  let currentEpisodes: Episode[] = [];
 
-  async function fetchShow() {
-    try {
-      const res = await fetch(`${apiBase}/shows/${showId}`);
-      if (!res.ok) throw new Error("Failed to fetch show");
-      show = await res.json();
-      await tick();
-      updateUnderline();
-    } catch (err) {
-      console.error(err);
-    }
+  function groupBySeason(
+    episodes: Episode[]
+  ): Record<number, Episode[]> {
+    const sorted = [...episodes].sort((a, b) => {
+      if (a.season !== b.season) {
+        return a.season - b.season;
+      }
+
+      return a.episode - b.episode;
+    });
+
+    return sorted.reduce<Record<number, Episode[]>>((acc, ep) => {
+      if (!acc[ep.season]) {
+        acc[ep.season] = [];
+      }
+
+      acc[ep.season].push(ep);
+      return acc;
+    }, {});
   }
 
-  // --- Episodes helpers ---
+  // Recalculate seasons when the show data changes
+  $: grouped = groupBySeason(
+    (show?.episodes_list ?? []) as Episode[]
+  );
 
-    let selectedSeason = null;
+  $: seasons = Object.keys(grouped)
+    .map(Number)
+    .sort((a, b) => {
+      if (a === 0) return 1;
+      if (b === 0) return -1;
+      return a - b;
+    });
 
-    // Group episodes by season (sorted)
-    function groupBySeason(episodes) {
-      if (!episodes) return {};
+  // Select season 1 by default, or the first available season
+  $: if (seasons.length > 0 && selectedSeason === null) {
+    selectedSeason = seasons.includes(1) ? 1 : seasons[0];
+  }
 
-      const sorted = [...episodes].sort((a, b) => {
-        if (a.season !== b.season) return a.season - b.season;
-        return a.episode - b.episode;
-      });
+  // Reset the selection if the selected season no longer exists
+  $: if (
+    selectedSeason !== null &&
+    seasons.length > 0 &&
+    !seasons.includes(selectedSeason)
+  ) {
+    selectedSeason = seasons.includes(1) ? 1 : seasons[0];
+  }
 
-      return sorted.reduce((acc, ep) => {
-        if (!acc[ep.season]) acc[ep.season] = [];
-        acc[ep.season].push(ep);
-        return acc;
-      }, {});
-    }
+  $: currentEpisodes =
+    selectedSeason !== null
+      ? grouped[selectedSeason] ?? []
+      : [];
 
-    // Reactive data
-    $: grouped = groupBySeason(show?.episodes_list || []);
-
-    // Seasons as numbers, sorted, with specials last
-    $: seasons = Object.keys(grouped)
-      .map(Number)
-      .sort((a, b) => {
-        if (a === 0) return 1;
-        if (b === 0) return -1;
-        return a - b;
-      });
-
-    // Default selection logic (runs once properly)
-    $: if (seasons.length && selectedSeason === null) {
-      selectedSeason = seasons.includes(1)
-        ? 1
-        : seasons[0];
-    }
-
-    // Current episodes (safe access)
-    $: currentEpisodes = grouped[selectedSeason] || [];
-
-  function setActive(tab: typeof activeTab, index: number) {
+  // Tabs and underline
+  function setActive(tab: Tab, index: number): void {
     activeTab = tab;
     updateUnderline(index);
   }
 
-  function updateUnderline(index = tabRefs.findIndex(t => t?.classList.contains('selected'))) {
-    if (tabRefs[index]) {
-      const tab = tabRefs[index];
+  function updateUnderline(
+    index: number = tabRefs.findIndex((t) =>
+      t?.classList.contains("selected")
+    )
+  ): void {
+    const tab = tabRefs[index];
+
+    if (tab) {
       underlineStyle = `width: ${tab.offsetWidth}px; transform: translateX(${tab.offsetLeft}px);`;
     }
   }
 
-  // --- Lightbox state ---
+  // Lightbox state
   let showLightbox = false;
   let currentIndex = 0;
 
-  function openLightbox(index: number) {
+  function openLightbox(index: number): void {
     currentIndex = index;
     showLightbox = true;
   }
 
-  function closeLightbox() {
+  function closeLightbox(): void {
     showLightbox = false;
   }
 
-  function prevImage() {
-    currentIndex = (currentIndex - 1 + show.images.length) % show.images.length;
+  function prevImage(): void {
+    const images = show?.images;
+
+    if (!images?.length) return;
+
+    currentIndex =
+      (currentIndex - 1 + images.length) % images.length;
   }
 
-  function nextImage() {
-    currentIndex = (currentIndex + 1) % show.images.length;
+  function nextImage(): void {
+    const images = show?.images;
+
+    if (!images?.length) return;
+
+    currentIndex = (currentIndex + 1) % images.length;
   }
 
-  function handleKeydown(e: KeyboardEvent) {
+  function handleKeydown(e: KeyboardEvent): void {
     if (!showLightbox) return;
+
     if (e.key === "Escape") closeLightbox();
     if (e.key === "ArrowLeft") prevImage();
     if (e.key === "ArrowRight") nextImage();
   }
 
   onMount(() => {
-    fetchShow();
+    tick().then(() => updateUnderline());
+
     window.addEventListener("keydown", handleKeydown);
-    const canvas = document.getElementById("particle-canvas") as HTMLCanvasElement;
-  if (canvas) {
-    const ctx = canvas.getContext("2d");
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
 
-    const particles = Array.from({ length: 80 }, () => ({
-      x: Math.random() * canvas.width,
-      y: Math.random() * canvas.height,
-      r: Math.random() * 2 + 1,
-      dx: (Math.random() - 0.5) * 0.5,
-      dy: (Math.random() - 0.5) * 0.5,
-    }));
-
-    function draw() {
-      if (!ctx) return;
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.fillStyle = "rgba(255,255,255,0.3)";
-      particles.forEach((p) => {
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-        ctx.fill();
-        p.x += p.dx;
-        p.y += p.dy;
-        if (p.x < 0 || p.x > canvas.width) p.dx *= -1;
-        if (p.y < 0 || p.y > canvas.height) p.dy *= -1;
-      });
-      requestAnimationFrame(draw);
-    }
-    draw();
-
-    window.addEventListener("resize", () => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-    });
-  }
-    return () => window.removeEventListener("keydown", handleKeydown);
+    return () => {
+      window.removeEventListener("keydown", handleKeydown);
+    };
   });
 </script>
 
 <!-- Particle background -->
-  <canvas id="particle-canvas" class="absolute inset-0 w-full h-full pointer-events-none"></canvas>
+  <ParticleBackground />
 
 {#if show}
 <main class="min-h-screen bg-gray-900 text-gray-100">
@@ -162,7 +165,7 @@
   {#if show.backdrop}
     <div
       class="absolute inset-0 bg-cover bg-top before:content-[''] before:absolute before:inset-0 before:bg-gradient-to-t before:from-gray-900 before:via-transparent"
-      style="background-image: url('{show.backdrop}')"
+      style="background-image: url('{tmdb(show.backdrop, "w1280")}')"
     ></div>
   {/if}
 
@@ -176,7 +179,10 @@
   <!-- Poster -->
   {#if show.poster}
     <img
-      src={show.poster}
+      src={tmdb(show.poster, "w500")}
+      on:error={(e) => onImgError(e, show.poster)}
+      decoding="async"
+      fetchpriority="high"
       alt={show.title}
       class="absolute left-6 bottom-[-4rem] md:bottom-[-6rem] w-44 md:w-56 rounded-lg shadow-2xl border-4 border-gray-900 z-20"
     />
@@ -250,7 +256,7 @@
 
                 <!-- Episode count -->
                 <span class="text-sm text-gray-400">
-                  {grouped[selectedSeason]?.length || 0} episodes
+                  {currentEpisodes.length} episodes
                 </span>
 
               </div>
@@ -258,13 +264,16 @@
               <!-- Episodes list -->
               <div class="space-y-4">
 
-                {#each grouped[selectedSeason] as ep}
+                {#each currentEpisodes as ep}
                   <div class="flex gap-4 bg-gray-700 p-4 rounded-lg hover:bg-gray-600 transition group">
 
                     <!-- Thumbnail -->
                     {#if ep.still}
                       <img
-                        src={ep.still}
+                        loading="lazy"
+                        decoding="async"
+                        on:error={(e) => onImgError(e, ep.still)}
+                        src={tmdb(ep.still, "w300")}
                         alt={ep.title}
                         class="w-32 h-20 object-cover rounded"
                       />
@@ -336,8 +345,7 @@
             on:click={() => openLightbox(i)}
             on:keydown={(e) => { if (e.key === "Enter" || e.key === " ") openLightbox(i); }}
           >
-            <img
-              src={img}
+            <img loading="lazy" decoding="async" on:error={(e) => onImgError(e, img)} src={tmdb(img, "w500")}
               alt={`Screenshot from ${show.title}`}
               class="rounded-lg"
             />
@@ -364,14 +372,7 @@
         {#if show.videos?.length > 0}
         {#each show.videos.slice(0,6) as vid}
           <div class="aspect-video rounded-lg overflow-hidden shadow-lg transform transition-transform duration-300 hover:scale-105 hover:shadow-xl">
-          <iframe
-            width="100%"
-            height="100%"
-            src={`https://www.youtube.com/embed/${vid.key}`}
-            frameborder="0"
-            allowfullscreen
-            title={`Video for ${show.title}`}
-          ></iframe>
+          <YouTubeEmbed id={vid.key} title={`Video for ${show.title}`} />
           </div>
         {/each}
         {:else}

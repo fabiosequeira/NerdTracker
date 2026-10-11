@@ -1,29 +1,39 @@
 from fastapi import APIRouter, HTTPException
 from beanie import PydanticObjectId
-from app.models.show import Show
-import httpx
+from app.models.anime import Anime
+from app.core.http import get_client
+from app.core.listing import list_documents
+from app.utils.tmdb_episodes import fetch_season_episodes
 import os
 from dotenv import load_dotenv
 load_dotenv()
 
-router = APIRouter(prefix="/shows", tags=["shows"])
+router = APIRouter(prefix="/animes", tags=["animes"])
 TMDB_API_KEY = os.getenv("TMDB_API_KEY")
 if not TMDB_API_KEY:
     raise ValueError("TMDB_API_KEY is not set in environment")
 
 
-@router.get("/", response_model=list[Show])
-async def list_shows():
-    return await Show.find_all().to_list()
+# Fields the grid doesn't need (episodes_list alone can be hundreds of rows per show);
+# omitted from the list by default. Use ?full=true to get complete documents.
+LIST_EXCLUDE = ("episodes_list", "overview", "backdrop", "videos", "images")
 
 
-@router.post("/", response_model=Show)
-async def add_show(tmdb_id: int):
+@router.get("/", response_model=list[Anime])
+async def list_animes(full: bool = False):
+    return await list_documents(Anime, LIST_EXCLUDE, full)
+
+
+@router.post("/", response_model=Anime)
+async def add_anime(tmdb_id: int):
     
-    #check for existing show
-    existing = await Show.find_one(Show.tmdb_id == tmdb_id)
+    if not TMDB_API_KEY:
+        raise RuntimeError("TMDB_API_KEY environment variable is not configured")
+    
+    #check for existing anime
+    existing = await Anime.find_one(Anime.tmdb_id == tmdb_id)
     if existing:
-        raise HTTPException(status_code=400, detail="Show already exists")
+        raise HTTPException(status_code=400, detail="Anime already exists")
     
     
     url = f"https://api.themoviedb.org/3/tv/{tmdb_id}"
@@ -34,44 +44,17 @@ async def add_show(tmdb_id: int):
         "include_image_language": "en,null"
     }
 
-    async with httpx.AsyncClient() as client:
-        resp = await client.get(url, params=params)
-        if resp.status_code != 200:
-            raise HTTPException(status_code=resp.status_code, detail="TMDb request failed")
-        details = resp.json()
-        
-    episodes_list = []
-    async with httpx.AsyncClient() as client:
-        for season in details.get("seasons", []):
-            season_number = season.get("season_number")
-
-            # Skip specials (season 0) if you want
-            # if season_number == 0:
-            #     continue
-
-            season_url = f"https://api.themoviedb.org/3/tv/{tmdb_id}/season/{season_number}"
-            season_resp = await client.get(season_url, params={
-                "api_key": TMDB_API_KEY,
-                "language": "en-US"
-            })
-
-            if season_resp.status_code != 200:
-                continue
-
-            season_data = season_resp.json()
-
-            for ep in season_data.get("episodes", []):
-                if ep.get("episode_number") is None:
-                    continue
-                
-                episodes_list.append({
-                    "season": season_number,
-                    "episode": ep.get("episode_number"),
-                    "title": ep.get("name"),
-                    "overview": ep.get("overview"),
-                    "air_date": ep.get("air_date"),
-                    "still": f"https://image.tmdb.org/t/p/w500{ep['still_path']}" if ep.get("still_path") else None
-                })
+    client = get_client()
+    resp = await client.get(url, params=params)
+    if resp.status_code != 200:
+        raise HTTPException(status_code=resp.status_code, detail="TMDb request failed")
+    details = resp.json()
+    episodes_list = await fetch_season_episodes(
+        client,
+        TMDB_API_KEY,
+        tmdb_id,
+        [season.get("season_number") for season in details.get("seasons", [])],
+    )
 
     payload = {
         "tmdb_id": details.get("id"),
@@ -100,23 +83,23 @@ async def add_show(tmdb_id: int):
         "in_production": details.get("in_production", False),
     }
 
-    show = Show(**payload)
-    await show.insert()
-    return show
+    anime = Anime(**payload)
+    await anime.insert()
+    return anime
 
 
-@router.delete("/{show_id}")
-async def delete_show(show_id: PydanticObjectId):
-    show = await Show.get(show_id)
-    if not show:
-        raise HTTPException(status_code=404, detail="Show not found")
-    await show.delete()
-    return {"message": f"Show {show.title} deleted ✅"}
+@router.delete("/{anime_id}")
+async def delete_anime(anime_id: PydanticObjectId):
+    anime = await Anime.get(anime_id)
+    if not anime:
+        raise HTTPException(status_code=404, detail="Anime not found")
+    await anime.delete()
+    return {"message": f"Anime {anime.title} deleted ✅"}
 
 
-@router.get("/{show_id}", response_model=Show)
-async def get_show(show_id: PydanticObjectId):
-    show = await Show.get(show_id)
-    if not show:
-        raise HTTPException(status_code=404, detail="Show not found")
-    return show
+@router.get("/{anime_id}", response_model=Anime)
+async def get_anime(anime_id: PydanticObjectId):
+    anime = await Anime.get(anime_id)
+    if not anime:
+        raise HTTPException(status_code=404, detail="Anime not found")
+    return anime
