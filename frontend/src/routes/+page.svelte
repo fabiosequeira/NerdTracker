@@ -7,9 +7,8 @@
   import CatalogCard from "$lib/components/CatalogCard.svelte";
   import { itemYear } from "$lib/media";
 
-  let movies: any[] = [], shows: any[] = [], anime: any[] = [], games: any[] = [], comics: any[] = [], mangas: any[] = [];
-  let books: any[] = [], audiobooks: any[] = [];
-  let booksLoaded = true, audiobooksLoaded = true;
+  let movies: any[] = [], shows: any[] = [], anime: any[] = [], games: any[] = [], comics: any[] = [], mangas: any[] = [], books: any[] = [], audiobooks: any[] = [];
+  let booksLoaded = false, audiobooksLoaded = false;
   let activeTab: "Movies" | "Shows" | "Anime" | "Game" | "Comics" | "Mangas" | "Books" | "Audiobooks" = "Movies";
   const apiBase = API_BASE;
   
