@@ -9,7 +9,7 @@
 
   let movies: any[] = [], shows: any[] = [], anime: any[] = [], games: any[] = [], comics: any[] = [], mangas: any[] = [];
   let books: any[] = [], audiobooks: any[] = [];
-  let booksLoaded = false, audiobooksLoaded = false;
+  let booksLoaded = true, audiobooksLoaded = true;
   let activeTab: "Movies" | "Shows" | "Anime" | "Game" | "Comics" | "Mangas" | "Books" | "Audiobooks" = "Movies";
   const apiBase = API_BASE;
   
