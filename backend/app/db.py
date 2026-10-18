@@ -9,6 +9,9 @@ from app.models.anime import Anime
 from app.models.game import Game
 from app.models.comic import Comic
 from app.models.manga import Manga
+from app.models.book import Book
+from app.models.audiobook import Audiobook
+from app.models.catalog import CatalogKey
 
 
 async def init_db():
@@ -19,6 +22,6 @@ async def init_db():
 
     await init_beanie(
         database=database,
-        document_models=[Movie, Show, Anime, Game, Comic, Manga],
+        document_models=[Movie, Show, Anime, Game, Comic, Manga, Book, Audiobook, CatalogKey],
     )
     print("Connected to MongoDB and initialized Beanie ODM.")

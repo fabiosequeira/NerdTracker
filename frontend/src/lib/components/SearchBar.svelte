@@ -1,6 +1,7 @@
 <script lang="ts">
   import { createEventDispatcher } from "svelte";
   import { API_BASE, getCachedList } from "$lib/api";
+  import { ASIN_LIKE, ISBN_LIKE, formatRuntime, peopleLine } from "$lib/media";
   const dispatch = createEventDispatcher();
 
   let query = "";
@@ -24,11 +25,28 @@
     { type: "Anime", path: "tmdb/search/anime" },
     { type: "Game", path: "igdb/search/game" },
     { type: "Comic", path: "comics/search" },
-    { type: "Manga", path: "manga/search" }
+    { type: "Manga", path: "manga/search" },
+    { type: "Book", path: "books/search" },
+    { type: "Audiobook", path: "audiobooks/search" }
   ];
 
+  const CATALOG_TYPES = ["Book", "Audiobook"];
+  const isCatalog = (type: string) => CATALOG_TYPES.includes(type);
+
+  // An ISBN (or, for audiobooks, an ASIN) can only mean a book / audiobook: skip the other sources.
+  function sourcesFor(q: string) {
+    const compact = q.trim();
+    if (ISBN_LIKE.test(compact)) return SEARCH_SOURCES.filter(s => isCatalog(s.type));
+    if (ASIN_LIKE.test(compact)) return SEARCH_SOURCES.filter(s => s.type === "Audiobook");
+    return SEARCH_SOURCES;
+  }
+
+  // providers that failed / timed out during the last search (shown quietly under the results)
+  let providerIssues: string[] = [];
+
   const ENDPOINT_FOR_TYPE: Record<string, string> = {
-    Movie: "movies", Show: "shows", Anime: "animes", Game: "games", Comic: "comics", Manga: "manga"
+    Movie: "movies", Show: "shows", Anime: "animes", Game: "games", Comic: "comics", Manga: "manga",
+    Book: "books", Audiobook: "audiobooks"
   };
   // which stored field holds the external (search) id for each type
   const ID_FIELD_FOR_TYPE: Record<string, string> = {
@@ -62,17 +80,27 @@
     const { signal } = controller;
 
     const collected: any[] = [];
+    const issues = new Set<string>();
+    providerIssues = [];
     let allOk = true;
 
     // Each source reports as soon as it answers, so fast ones show up immediately instead of
     // everything waiting for the slowest (ComicVine, TV detail lookups). A source that fails no
     // longer throws away the results of the others.
     await Promise.all(
-      SEARCH_SOURCES.map(async ({ type, path }) => {
+      sourcesFor(q).map(async ({ type, path }) => {
         try {
           const res = await fetch(`${API_BASE}/${path}?query=${encodeURIComponent(q)}`, { signal });
-          const data = res.ok ? await res.json() : null;
+          const body = res.ok ? await res.json() : null;
+          // Books/Audiobooks answer { results, providers }; the older sources answer a plain list
+          const data = Array.isArray(body) ? body : body?.results;
           if (!Array.isArray(data)) { allOk = false; return; }
+          if (!Array.isArray(body) && body?.providers) {
+            for (const [name, st] of Object.entries<any>(body.providers)) {
+              if (st.status === "error" || st.status === "timeout") issues.add(name.replace(/_/g, " "));
+            }
+            providerIssues = [...issues];
+          }
           if (signal.aborted) return;
           collected.push(...data.map((item: any) => ({ ...item, type })));
           results = [...collected].sort((a, b) => (b.popularity ?? 0) - (a.popularity ?? 0));
@@ -102,7 +130,13 @@
 
     // check the library the home page already loaded (per type) before sending a request
     const idField = ID_FIELD_FOR_TYPE[item.type];
-    if (getCachedList(endpoint)?.some((existing) => existing[idField] === item.id)) {
+    const library = getCachedList(endpoint);
+    const alreadyThere = isCatalog(item.type)
+      ? library?.some((e) =>
+          (item.identifiers?.isbn_13 && e.isbn_13 === item.identifiers.isbn_13) ||
+          (item.identifiers?.asin && e.asin === item.identifiers.asin))
+      : library?.some((existing) => existing[idField] === item.id);
+    if (alreadyThere) {
       alert(`${item.type} "${item.title}" is already in your library ✅`);
       return;
     }
@@ -110,7 +144,18 @@
     try {
       let res;
 
-      if (item.type === "Game") {
+      if (isCatalog(item.type)) {
+        // The server re-fetches and merges the metadata from these identifiers itself.
+        res = await fetch(`${API_BASE}/${endpoint}/`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ identifiers: item.identifiers })
+        });
+        if (res.status === 409) {
+          alert(`${item.type} "${item.title}" is already in your library ✅`);
+          return;
+        }
+      } else if (item.type === "Game") {
         res = await fetch(`${API_BASE}/${endpoint}/?igdb_id=${item.id}`, { method: "POST" });
       } else if (item.type === "Comic") {
         res = await fetch(`${API_BASE}/comics/?comicvine_id=${item.id}`, { method: "POST" });
@@ -124,7 +169,11 @@
       if (!res.ok) {
         const errText = await res.text();
         console.error("Error adding item:", errText);
-        alert("Failed to add item ❌");
+        let reason = "";
+        if (isCatalog(item.type)) {
+          try { const d = JSON.parse(errText).detail; reason = typeof d === "string" ? `\n${d}` : ""; } catch { /* not JSON */ }
+        }
+        alert(`Failed to add item ❌${reason}`);
         return;
       }
 
@@ -170,7 +219,7 @@
     bind:value={query}
     on:input={searchAll}
     on:keydown={handleKeydown}
-    placeholder="Search for a movie, show, anime, game or comic..."
+    placeholder="Search movies, shows, anime, games, comics, books, audiobooks or an ISBN..."
     class="w-full border border-gray-700 rounded-lg p-2 bg-gray-800 text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-400"
   />
 
@@ -190,14 +239,33 @@
         >
           {#if item.poster}
             <img src={item.poster} alt={item.title} width="40" height="56" loading="lazy" decoding="async" class="w-10 h-14 object-cover rounded" />
+          {:else if isCatalog(item.type)}
+            <div class="w-10 h-14 shrink-0 rounded bg-gray-700 flex items-center justify-center" aria-hidden="true">{item.type === 'Audiobook' ? '🎧' : '📖'}</div>
           {/if}
 
-          <div>
+          <div class="min-w-0">
             <span class="font-medium text-gray-100">{item.title}</span>
 
             <span class="text-sm text-gray-400">
               {item.year ? `(${item.year})` : ""} • {item.type}
             </span>
+
+            {#if isCatalog(item.type)}
+              <div class="text-xs text-gray-400">
+                {[
+                  peopleLine(item.authors, 2),
+                  item.type === 'Audiobook' && item.narrators?.length ? `🎙️ ${peopleLine(item.narrators, 1)}` : '',
+                  item.type === 'Audiobook' ? formatRuntime(item.runtime_minutes) : '',
+                  item.type === 'Book' && item.page_count ? `${item.page_count} pages` : '',
+                  item.type === 'Audiobook' && item.recording_type ? item.recording_type : '',
+                ].filter(Boolean).join(' • ')}
+              </div>
+              {#if item.publisher || item.identifiers?.isbn_13 || item.identifiers?.asin}
+                <div class="text-xs text-gray-500">
+                  {[item.publisher, item.identifiers?.isbn_13 ? `ISBN ${item.identifiers.isbn_13}` : item.identifiers?.asin ? `ASIN ${item.identifiers.asin}` : ''].filter(Boolean).join(' • ')}
+                </div>
+              {/if}
+            {/if}
 
             {#if item.type === 'Comic'}
               <div class="text-xs text-gray-400">
@@ -209,6 +277,11 @@
         </button>
       </li>
     {/each}
+    {#if providerIssues.length}
+      <li class="p-2 text-xs text-amber-300 border-t border-gray-700" aria-live="polite">
+        ⚠️ Some results may be missing: {providerIssues.join(", ")} unavailable
+      </li>
+    {/if}
   </ul>
 {/if}
 
